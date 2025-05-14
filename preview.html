@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio Preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0a192f;
+      --secondary: #64ffda;
+      --tertiary: #112240;
+      --light: #ccd6f6;
+      --dark: #8892b0;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      scroll-behavior: smooth;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--primary);
+      color: var(--light);
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+    
+    header {
+      position: fixed;
+      width: 100%;
+      top: 0;
+      z-index: 50;
+      background-color: rgba(10, 25, 47, 0.8);
+      backdrop-filter: blur(10px);
+      padding: 1.5rem 0;
+      transition: all 0.3s ease;
+    }
+    
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .logo {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--secondary);
+    }
+    
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+    
+    .nav-links a {
+      color: var(--light);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+    
+    .nav-links a:hover {
+      color: var(--secondary);
+    }
+    
+    .nav-number {
+      color: var(--secondary);
+      font-family: monospace;
+      margin-right: 0.3rem;
+    }
+    
+    /* Home Section */
+    #home {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding-top: 100px;
+    }
+    
+    .hero-content {
+      text-align: left;
+    }
+    
+    .hero-intro {
+      color: var(--secondary);
+      font-family: monospace;
+      margin-bottom: 1rem;
+    }
+    
+    .hero-name {
+      font-size: 4rem;
+      font-weight: bold;
+      color: var(--light);
+      margin-bottom: 1rem;
+    }
+    
+    .hero-subtitle {
+      font-size: 3rem;
+      font-weight: bold;
+      color: var(--dark);
+      margin-bottom: 1.5rem;
+    }
+    
+    .hero-description {
+      max-width: 540px;
+      color: var(--dark);
+      margin-bottom: 2rem;
+      font-size: 1.1rem;
+    }
+    
+    .cta-button {
+      display: inline-block;
+      padding: 1rem 2rem;
+      border: 2px solid var(--secondary);
+      color: var(--secondary);
+      border-radius: 4px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: background-color 0.3s ease;
+    }
+    
+    .cta-button:hover {
+      background-color: rgba(100, 255, 218, 0.1);
+    }
+    
+    /* About Section */
+    #about {
+      padding: 100px 0;
+    }
+    
+    .section-title {
+      display: flex;
+      align-items: center;
+      margin-bottom: 2.5rem;
+      font-size: 1.8rem;
+      font-weight: bold;
+    }
+    
+    .section-number {
+      color: var(--secondary);
+      font-family: monospace;
+      margin-right: 0.5rem;
+    }
+    
+    .section-line {
+      height: 1px;
+      background-color: var(--tertiary);
+      flex-grow: 1;
+      margin-left: 1rem;
+    }
+    
+    .about-grid {
+      display: grid;
+      grid-template-columns: 3fr 2fr;
+      gap: 2rem;
+    }
+    
+    .about-text p {
+      color: var(--dark);
+      margin-bottom: 1rem;
+    }
+    
+    .skills-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+      margin-top: 1.5rem;
+    }
+    
+    .skills-list li {
+      display: flex;
+      align-items: center;
+      color: var(--dark);
+      list-style: none;
+    }
+    
+    .skills-list li::before {
+      content: "▹";
+      color: var(--secondary);
+      margin-right: 0.5rem;
+    }
+    
+    .profile-pic {
+      position: relative;
+    }
+    
+    .profile-wrapper {
+      position: relative;
+      z-index: 1;
+    }
+    
+    .profile-img {
+      width: 100%;
+      border-radius: 4px;
+      filter: grayscale(100%);
+      transition: filter 0.3s ease;
+    }
+    
+    .profile-img:hover {
+      filter: grayscale(0);
+    }
+    
+    .profile-overlay {
+      position: absolute;
+      inset: 0;
+      background-color: rgba(100, 255, 218, 0.2);
+      border-radius: 4px;
+      transition: background-color 0.3s ease;
+    }
+    
+    .profile-wrapper:hover .profile-overlay {
+      background-color: transparent;
+    }
+    
+    .profile-border {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border: 2px solid var(--secondary);
+      border-radius: 4px;
+      top: 1rem;
+      left: 1rem;
+      z-index: -1;
+      transition: all 0.3s ease;
+    }
+    
+    .profile-wrapper:hover + .profile-border {
+      top: 0.5rem;
+      left: 0.5rem;
+    }
+    
+    /* Media queries for responsiveness */
+    @media (max-width: 768px) {
+      .hero-name {
+        font-size: 3rem;
+      }
+      
+      .hero-subtitle {
+        font-size: 2rem;
+      }
+      
+      .about-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .hero-content {
+        text-align: center;
+      }
+      
+      .hero-description {
+        margin: 0 auto 2rem;
+      }
+      
+      .nav-links {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container">
+      <nav>
+        <a href="#home" class="logo">YourName<span style="color: var(--light)">.</span></a>
+        <ul class="nav-links">
+          <li><a href="#home"><span class="nav-number">01.</span>Home</a></li>
+          <li><a href="#about"><span class="nav-number">02.</span>About</a></li>
+          <li><a href="#skills"><span class="nav-number">03.</span>Skills</a></li>
+          <li><a href="#projects"><span class="nav-number">04.</span>Projects</a></li>
+          <li><a href="#contact"><span class="nav-number">05.</span>Contact</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Home Section -->
+  <section id="home">
+    <div class="container">
+      <div class="hero-content">
+        <p class="hero-intro">Hi, my name is</p>
+        <h1 class="hero-name">Your Name</h1>
+        <h2 class="hero-subtitle">I build things for the web.</h2>
+        <p class="hero-description">
+          I'm a web developer specializing in building exceptional digital experiences.
+          Currently, I'm focused on building accessible, human-centered products.
+        </p>
+        <a href="#contact" class="cta-button">Get In Touch</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- About Section -->
+  <section id="about">
+    <div class="container">
+      <h2 class="section-title">
+        <span class="section-number">01.</span>
+        About Me
+        <span class="section-line"></span>
+      </h2>
+      
+      <div class="about-grid">
+        <div class="about-text">
+          <p>
+            Hello! My name is Your Name and I enjoy creating things that live on the internet. 
+            My interest in web development started back in 20XX when I decided to try customizing 
+            a website template — turns out hacking together a custom reblog button taught me a lot about HTML & CSS!
+          </p>
+          <p>
+            Fast-forward to today, and I've had the privilege of working at an advertising agency, 
+            a start-up, a huge corporation, and a student-led design studio. My main focus these days 
+            is building accessible, inclusive products and digital experiences.
+          </p>
+          <p>
+            Here are a few technologies I've been working with recently:
+          </p>
+          
+          <ul class="skills-list">
+            <li>JavaScript (ES6+)</li>
+            <li>React</li>
+            <li>Node.js</li>
+            <li>Tailwind CSS</li>
+            <li>TypeScript</li>
+            <li>Next.js</li>
+          </ul>
+        </div>
+        
+        <div class="profile-pic">
+          <div class="profile-wrapper">
+            <div class="profile-overlay"></div>
+            <img src="https://via.placeholder.com/400x500" alt="Your Name" class="profile-img">
+          </div>
+          <div class="profile-border"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // Simple scroll event handler to change header appearance
+    window.addEventListener('scroll', function() {
+      const header = document.querySelector('header');
+      if (window.scrollY > 50) {
+        header.style.padding = '1rem 0';
+        header.style.boxShadow = '0 10px 30px -10px rgba(2, 12, 27, 0.7)';
+      } else {
+        header.style.padding = '1.5rem 0';
+        header.style.boxShadow = 'none';
+      }
+    });
+  </script>
+</body>
+</html>
