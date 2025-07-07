@@ -23,14 +23,25 @@ const Home = () => {
             I'm a Computer Scientist and Software Developer specializing in building exceptional digital experiences.
             I want to make sure to always deliver the best solutions to problems.
           </p>
-          <motion.a
-            href="#contact"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="inline-block py-4 px-8 border-2 border-secondary text-secondary font-medium rounded hover:bg-secondary/10 transition-all duration-300"
-          >
-            Get In Touch
-          </motion.a>
+          <div className="space-x-4">
+            <motion.a
+              href="#contact"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="inline-block py-4 px-8 border-2 border-secondary text-secondary font-medium rounded hover:bg-secondary/10 transition-all duration-300"
+            >
+              Get In Touch
+            </motion.a>
+            <motion.a
+              href="/assets/Ronald Ossai CV & Resume 2025.pdf"
+              download
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="inline-block py-4 px-8 border-2 border-secondary text-secondary font-medium rounded hover:bg-secondary/10 transition-all duration-300"
+            >
+              Download CV
+            </motion.a>
+          </div>
           </motion.div>          {/* Animated Tech Scene */}
           <motion.div
             initial={{ opacity: 0 }}
