@@ -23,7 +23,7 @@ const Home = () => {
             I'm a Computer Scientist and Software Developer specializing in building exceptional digital experiences.
             I want to make sure to always deliver the best solutions to problems.
           </p>
-          <div className="space-x-4">
+          <div className="flex flex-col items-center space-y-4 md:flex-row md:space-x-4 md:space-y-0 md:items-start">
             <motion.a
               href="#contact"
               whileHover={{ scale: 1.05 }}

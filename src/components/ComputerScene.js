@@ -13,7 +13,7 @@ export default function ComputerScene() {
           <div className="bg-secondary/80 w-32 h-24 mx-auto rounded-md flex items-center justify-center">
             <div className="bg-gray-700 w-28 h-20 rounded-md flex items-center justify-center">
               <div className="text-white text-xs">
-                <span className="text-secondary">// TODO:</span><br />
+                <span className="text-secondary">// TODO: </span><br />
                 Install Three.js<br />dependencies
               </div>
             </div>
