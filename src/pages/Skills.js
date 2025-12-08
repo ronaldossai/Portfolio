@@ -5,11 +5,11 @@ const Skills = () => {
   const skills = [
     {
       category: "Programming Languages",
-      items: ["Python", "JavaScript", "Java", "PHP", "R", "SQL", "HTML & CSS", "TypeScript"]
+      items: ["Python", "JavaScript", "Java", "PHP", "C#", "R", "SQL", "HTML & CSS", "TypeScript"]
     },
     {
       category: "Frameworks & Technologies",
-      items: ["Django", "React/Tailwind/Vercel", "Web 3D applications (Threejs + Bootstrap)", "Kotlin", "Unity", "Unreal Engine"]
+      items: ["Django", "React/Tailwind/Vercel", "Web 3D applications (Threejs + Bootstrap)", "Kotlin", "Unity", "Node.js", "Express.js", "RESTful APIs", "GraphQL"]
     },
     {
       category: "Software & Tools",
