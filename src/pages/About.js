@@ -25,11 +25,9 @@ const About = () => {
                 python and pygame. It was nothing novel and it was terminal based but it was the catalyst to the life i currently call 
                 my reality.
               </p>
-              <p className="text-dark mb-4">
-                Fast-forward to today, and I've had the privilege of working at Allianz Insurance as a Software Developer, 
-                I have been able to attend a top university, the University of Sussex, where I studied Computer Science and Artifical Intelligence. 
-                I have had the privilege of working at a huge corporation, and several student-led projects. My main focus these days 
-                is building accessible, inclusive products and digital experiences.
+              <p className="text-dark mb-4"> 
+                I have earned my Bsc at the University of Sussex, where I studied Computer Science and Artifical Intelligence. 
+                My main focus these days is building accessible, inclusive products and digital experiences.
               </p>
               <p className="text-dark mb-4">
                 Here are a few technologies I've been working with recently:
