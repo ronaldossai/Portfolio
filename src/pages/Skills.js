@@ -33,7 +33,7 @@ const Skills = () => {
     },
     {
       category: "Media",
-      items: ["Video Editing"]
+      items: ["Video Editing, Music Production, Graphic Design"]
     }
   ];
 

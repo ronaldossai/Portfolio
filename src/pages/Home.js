@@ -33,7 +33,7 @@ const Home = () => {
               Get In Touch
             </motion.a>
             <motion.a
-              href="/assets/Ronald Ossai CV & Resume 2025.pdf"
+              href="/assets/Ronald ossai CV and Resume 1 1 (3).pdf"
               download
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
