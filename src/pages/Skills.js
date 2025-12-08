@@ -25,7 +25,7 @@ const Skills = () => {
     },
     {
       category: "Academic",
-      items: ["Mathematics", "Physics (Quantum Physics and General Relativity + Astrophysics)", "Logic"]
+      items: ["Applied Mathematics", "Theoretical Physics", "Logical thinking"]
     },
     {
       category: "Soft Skills",
