@@ -39,7 +39,6 @@ const Projects = () => {
           viewport={{ once: true }}
         >
           <h2 className="text-3xl font-bold mb-2 flex items-center">
-            <span className="text-secondary font-mono mr-2">03.</span>
             <span className="text-light">Projects</span>
             <span className="h-px bg-tertiary flex-grow ml-4"></span>
           </h2>
