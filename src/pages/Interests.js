@@ -5,13 +5,13 @@ import { FaMusic, FaCamera } from 'react-icons/fa';
 const Interests = () => {
   const astrophotographyImages = [
     {
-      src: '/assets/jupiter.jpg',
+      src: '/assets/Jupiter astrophoto.jpg',
       alt: 'Jupiter',
       title: 'Jupiter',
       description: 'Gas giant with Great Red Spot'
     },
     {
-      src: '/assets/mars.jpg',
+      src: '/assets/Mars astrophoto.jpg',
       alt: 'Mars',
       title: 'Mars',
       description: 'The Red Planet'
