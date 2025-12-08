@@ -24,7 +24,7 @@ const Contact = () => {
     setSuccess(false);
     setError(false);
 
-    // You'll need to sign up for EmailJS and replace these with your actual service ID, template ID, and public key
+    // Need to sign up for EmailJS and replace these with your actual service ID, template ID, and public key
     emailjs.sendForm(
       'YOUR_SERVICE_ID', 
       'YOUR_TEMPLATE_ID', 

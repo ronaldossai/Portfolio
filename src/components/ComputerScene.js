@@ -1,5 +1,4 @@
 import React from 'react';
-// Import these lines once you've installed Three.js dependencies
 // import { Canvas } from '@react-three/fiber';
 // import { OrbitControls, Environment, ContactShadows } from '@react-three/drei';
 // import ComputerModel from './ComputerModel';
