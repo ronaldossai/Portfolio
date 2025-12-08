@@ -13,15 +13,15 @@ const Skills = () => {
     },
     {
       category: "Software & Tools",
-      items: ["Microsoft Excel", "Microsoft Access", "Visio", "Power BI", "Blender", "Windows OS", "Linux", "Unix", "CNC Machinery", "UI/UX"]
+      items: ["Microsoft Excel", "Microsoft Access", "Visio", "Power BI", "Blender", "Windows OS", "Linux/Unix"]
     },
     {
       category: "Technical Areas",
-      items: ["Machine Learning", "Computer Vision", "Computer Graphics", "Computer Architecture", "Computer Engineering", "Cybersecurity", "Electronics"]
+      items: ["Machine Learning", "Computer Vision", "Computer Graphics", "Computer Architecture", "Computer Engineering", "Cybersecurity", "Electronics", "CNC Machinery"]
     },
     {
       category: "Programming Paradigms",
-      items: ["Object Oriented Programming", "Functional Programming", "Imperative Programming", "Procedural Programming", "AGILE"]
+      items: ["Object Oriented Programming", "Functional Programming", "Imperative Programming", "Procedural Programming"]
     },
     {
       category: "Academic",
