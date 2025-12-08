@@ -1,17 +1,19 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { FaMusic, FaCamera } from 'react-icons/fa';
+import JupiterImage from '../assets/Jupiter astrophoto.jpg';
+import MarsImage from '../assets/Mars astrophoto.JPG';
 
 const Interests = () => {
   const astrophotographyImages = [
     {
-      src: '/assets/Jupiter astrophoto.jpg',
+      src: JupiterImage,
       alt: 'Jupiter',
       title: 'Jupiter',
       description: 'Gas giant with Great Red Spot'
     },
     {
-      src: '/assets/Mars astrophoto.jpg',
+      src: MarsImage,
       alt: 'Mars',
       title: 'Mars',
       description: 'The Red Planet'
