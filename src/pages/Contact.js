@@ -5,8 +5,8 @@ import emailjs from '@emailjs/browser';
 const Contact = () => {
   const formRef = useRef();
   const [form, setForm] = useState({
-    name: '',
-    email: '',
+    from_name: '',
+    from_email: '',
     message: '',
   });
   const [loading, setLoading] = useState(false);
@@ -24,19 +24,18 @@ const Contact = () => {
     setSuccess(false);
     setError(false);
 
-    // Need to sign up for EmailJS and replace these with your actual service ID, template ID, and public key
     emailjs.sendForm(
-      'YOUR_SERVICE_ID', 
-      'YOUR_TEMPLATE_ID', 
+      'service_vlramkm', 
+      'template_6v0zcyh', 
       formRef.current, 
-      'YOUR_PUBLIC_KEY'
+      'Qf2Mz0vUc527n1S-E'
     )
     .then(() => {
       setLoading(false);
       setSuccess(true);
       setForm({
-        name: '',
-        email: '',
+        from_name: '',
+        from_email: '',
         message: '',
       });
     })
@@ -120,11 +119,11 @@ const Contact = () => {
             <div>
               <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label htmlFor="name" className="block text-light mb-2">Your Name</label>
+                  <label htmlFor="from_name" className="block text-light mb-2">Your Name</label>
                   <input
                     type="text"
-                    name="name"
-                    value={form.name}
+                    name="from_name"
+                    value={form.from_name}
                     onChange={handleChange}
                     placeholder="What's your name?"
                     className="w-full px-4 py-3 bg-tertiary text-light rounded border border-dark focus:border-secondary focus:outline-none"
@@ -133,11 +132,11 @@ const Contact = () => {
                 </div>
                 
                 <div>
-                  <label htmlFor="email" className="block text-light mb-2">Your Email</label>
+                  <label htmlFor="from_email" className="block text-light mb-2">Your Email</label>
                   <input
                     type="email"
-                    name="email"
-                    value={form.email}
+                    name="from_email"
+                    value={form.from_email}
                     onChange={handleChange}
                     placeholder="What's your email address?"
                     className="w-full px-4 py-3 bg-tertiary text-light rounded border border-dark focus:border-secondary focus:outline-none"
