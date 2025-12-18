@@ -26,7 +26,7 @@ const About = () => {
                 my reality.
               </p>
               <p className="text-dark mb-4"> 
-                I have earned my Bsc at the University of Sussex, where I studied Computer Science and Artifical Intelligence. 
+                I have earned my Bsc at the University of Sussex, where I studied Computer Science and Artificial Intelligence. 
                 My main focus these days is building accessible, inclusive products and digital experiences.
               </p>
               <p className="text-dark mb-4">
