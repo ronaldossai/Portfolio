@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 
 const AnimatedTechScene = () => {
   // Animation variants for different elements
+  debugger;
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {

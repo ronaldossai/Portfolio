@@ -13,7 +13,7 @@ const Footer = () => {
           
           <div className="flex space-x-6">
             <a 
-              href="https://github.com/yourusername" 
+              href="https://github.com/ronaldossai" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-dark hover:text-secondary transition-colors"
@@ -25,7 +25,7 @@ const Footer = () => {
             </a>
             
             <a 
-              href="https://linkedin.com/in/yourusername" 
+              href="https://www.linkedin.com/in/ronald-ossai-b66670206/" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-dark hover:text-secondary transition-colors"
