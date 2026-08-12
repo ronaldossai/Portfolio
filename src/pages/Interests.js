@@ -20,6 +20,15 @@ const Interests = () => {
     }
   ];
 
+  const soundcloudTracks = [
+    { title: 'P3sticide', url: 'https://soundcloud.com/n_rondon/p3sticide' },
+    { title: 'Arcane', url: 'https://soundcloud.com/n_rondon/arcane' },
+    { title: 'Stereosenther', url: 'https://soundcloud.com/n_rondon/stereosenther' },
+    { title: 'Spinor', url: 'https://soundcloud.com/n_rondon/spinor' },
+    { title: 'Monarch', url: 'https://soundcloud.com/n_rondon/monarch' },
+    { title: 'Arrow of Love', url: 'https://soundcloud.com/n_rondon/arrow-of-love' }
+  ];
+
   return (
     <section id="interests" className="min-h-screen py-20 px-4 md:px-8 lg:px-16">
       <div className="max-w-6xl mx-auto">
@@ -104,33 +113,41 @@ const Interests = () => {
             blend creativity with technical skills in a different medium.
           </p>
 
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            className="bg-primary-light rounded-lg p-8 border border-secondary/20 shadow-lg max-w-2xl"
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {soundcloudTracks.map((track, index) => (
+              <motion.div
+                key={track.url}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                viewport={{ once: true }}
+                className="bg-primary-light rounded-lg p-4 border border-secondary/20 shadow-lg"
+              >
+                <h4 className="text-lg font-semibold text-light mb-3">{track.title}</h4>
+                <iframe
+                  title={track.title}
+                  width="100%"
+                  height="300"
+                  scrolling="no"
+                  frameBorder="no"
+                  allow="autoplay"
+                  src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(track.url)}&color=%23ff5500&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=true&visual=true`}
+                ></iframe>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.a
+            href="https://soundcloud.com/n_rondon"
+            target="_blank"
+            rel="noopener noreferrer"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="inline-block bg-secondary text-primary px-8 py-3 rounded-md font-semibold 
+                     hover:bg-secondary/90 transition-all duration-300 shadow-md hover:shadow-lg"
           >
-            <div className="flex flex-col md:flex-row items-center gap-6">
-              <div className="bg-secondary/10 p-6 rounded-full">
-                <FaMusic className="text-secondary text-5xl" />
-              </div>
-              <div className="flex-1 text-center md:text-left">
-                <h4 className="text-2xl font-bold text-light mb-2">Check out my tracks</h4>
-                <p className="text-dark mb-4">
-                  Listen to my latest productions on SoundCloud
-                </p>
-                <motion.a
-                  href="https://soundcloud.com/n_rondon"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="inline-block bg-secondary text-primary px-8 py-3 rounded-md font-semibold 
-                           hover:bg-secondary/90 transition-all duration-300 shadow-md hover:shadow-lg"
-                >
-                  Visit My SoundCloud
-                </motion.a>
-              </div>
-            </div>
-          </motion.div>
+            Visit My SoundCloud
+          </motion.a>
         </motion.div>
       </div>
     </section>
