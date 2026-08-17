@@ -21,7 +21,7 @@ const Projects = () => {
       liveLink: "https://github.com/ronaldossai/Web-3D-app",
       githubLink: "https://github.com/ronaldossai/Web-3D-app"
     },
-    {      title: "Monopoly tribute Game",
+    {      title: "Monopoly Tribute Game",
       description: "A monopoly tribute game built Java. The game features a fully functional board, console based player interacction and property management.",
       tags: ["Java", "JavaFX", "Java Swing"],
       image: PropertyTycoon,
