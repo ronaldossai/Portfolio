@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import QuboxImage from '../assets/Quboximage.png';
 import CTRLLIFEimage from '../assets/CTRLLIFEimage.png';
 import PropertyTycoon from '../assets/PropertyTycoon.png';
+import InteractiveStandardModel from '../assets/InteractiveStandardModel.png';
 
 const Projects = () => {
   const projects = [
@@ -26,6 +27,14 @@ const Projects = () => {
       image: PropertyTycoon,
       liveLink: "https://github.com/ronaldossai/property_tycoon",
       githubLink: "https://github.com/ronaldossai/property_tycoon"
+    },
+    {
+      title: "Interactive Standard Model",
+      description: "An interactive 3D visualization of the Standard Model of particle physics. Click any particle to explore its properties, then open a dedicated Lab to interact with the physics behind it such as Malus's Law, spontaneous symmetry breaking, colour confinement, time dilation, and more.",
+      tags: ["React", "TypeScript", "Three.js", "React Three Fiber", "Vite"],
+      image: InteractiveStandardModel,
+      liveLink: "https://the-interactive-standard-model.vercel.app/",
+      githubLink: "https://github.com/ronaldossai/Interactive-Standard-Model"
     }
   ];
 
