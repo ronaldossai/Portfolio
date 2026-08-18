@@ -4,36 +4,20 @@ import { motion } from 'framer-motion';
 const Skills = () => {
   const skills = [
     {
-      category: "Programming Languages",
-      items: ["Python", "JavaScript", "Java", "PHP", "C#", "R", "SQL", "HTML & CSS", "TypeScript"]
+      category: "Languages",
+      items: ["Python", "JavaScript", "TypeScript", "Java", "C++", "PHP", "SQL", "HTML & CSS", "Kotlin"]
     },
     {
-      category: "Frameworks & Technologies",
-      items: ["Django", "React/Tailwind/Vercel", "Web 3D applications (Threejs + Bootstrap)", "Kotlin", "Unity", "Node.js", "Express.js", "RESTful APIs", "GraphQL"]
+      category: "Frameworks & Tools",
+      items: ["React", "Node.js", "Express.js", "Django", "GraphQL", "RESTful APIs", "Three.js", "Unity", "Tailwind CSS"]
     },
     {
-      category: "Software & Tools",
-      items: ["Microsoft Excel", "Microsoft Access", "Visio", "Power BI", "Blender", "Windows OS", "Linux/Unix"]
+      category: "Platforms & Software",
+      items: ["Vercel", "Power BI", "Blender", "Microsoft Excel", "Microsoft Access", "Visio", "Linux/Unix", "Windows"]
     },
     {
-      category: "Technical Areas",
-      items: ["Machine Learning", "Computer Vision", "Computer Graphics", "Computer Architecture", "Computer Engineering", "Cybersecurity", "Electronics", "CNC Machinery"]
-    },
-    {
-      category: "Programming Paradigms",
-      items: ["Object Oriented Programming", "Functional Programming", "Imperative Programming", "Procedural Programming"]
-    },
-    {
-      category: "Academic",
-      items: ["Applied Mathematics", "Theoretical Physics", "Logical thinking"]
-    },
-    {
-      category: "Soft Skills",
-      items: ["Teamwork", "Problem Solving", "Public Speaking and Extrovert", "Adaptive Learning", "Grit", "Compassion", "Time management", "Conceptual Thinking", "Report Writing"]
-    },
-    {
-      category: "Media",
-      items: ["Video Editing, Music Production, Graphic Design"]
+      category: "Specializations",
+      items: ["Machine Learning", "Computer Vision", "Computer Graphics", "Computer Architecture", "Cybersecurity", "Electronics", "Quantum Computing", "Theoretical Physics"]
     }
   ];
 
