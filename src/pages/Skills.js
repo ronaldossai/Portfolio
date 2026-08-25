@@ -9,7 +9,7 @@ const Skills = () => {
     },
     {
       category: "Frameworks & Tools",
-      items: ["React", "Node.js", "Express.js", "Django", "GraphQL", "RESTful APIs", "Three.js", "Unity", "Tailwind CSS"]
+      items: ["React", "Next.js", "Node.js", "Express.js", "Django", "GraphQL", "RESTful APIs", "Three.js", "Unity", "Tailwind CSS"]
     },
     {
       category: "Platforms & Software",
@@ -17,7 +17,7 @@ const Skills = () => {
     },
     {
       category: "Specializations",
-      items: ["Machine Learning", "Computer Vision", "Computer Graphics", "Computer Architecture", "Cybersecurity", "Electronics", "Quantum Computing", "Theoretical Physics"]
+      items: ["Machine Learning", "Computer Vision", "Computer Graphics", "Computer Architecture", "Cybersecurity", "Electronics", "Physics"]
     }
   ];
 
@@ -60,7 +60,7 @@ const Skills = () => {
           <div className="mt-16 text-center">
             <p className="text-dark text-lg mb-6">
               I'm always learning and adding new skills to my repertoire.
-              Currently exploring advanced applications in Computer Vision and Machine Learning. And research in Quantum Computing.
+              Currently exploring advanced applications in Computer Vision and Machine Learning, with an ongoing interest in Quantum Computing and Theoretical Physics research.
             </p>
             <motion.a
               href="#projects"

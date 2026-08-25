@@ -35,22 +35,13 @@ const About = () => {
               
               <ul className="grid grid-cols-2 gap-2 text-dark">
                 <li className="flex items-center">
-                  <span className="text-secondary mr-2">▹</span> JavaScript (ES6+)
-                </li>
-                <li className="flex items-center">
                   <span className="text-secondary mr-2">▹</span> React
                 </li>
                 <li className="flex items-center">
-                  <span className="text-secondary mr-2">▹</span> Node.js
-                </li>
-                <li className="flex items-center">
-                  <span className="text-secondary mr-2">▹</span> Tailwind CSS
+                  <span className="text-secondary mr-2">▹</span> Next.js
                 </li>
                 <li className="flex items-center">
                   <span className="text-secondary mr-2">▹</span> TypeScript
-                </li>
-                <li className="flex items-center">
-                  <span className="text-secondary mr-2">▹</span> Next.js
                 </li>
               </ul>
             </div>
