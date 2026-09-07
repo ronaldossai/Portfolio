@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import AnimatedTechScene from '../components/AnimatedTechScene';
+import TimezoneClock from '../components/TimezoneClock';
 
 const Home = () => {
   return (
@@ -42,7 +43,9 @@ const Home = () => {
               Download CV
             </motion.a>
           </div>
-          </motion.div>          {/* Animated Tech Scene */}
+          </motion.div>
+
+          {/* Animated Tech Scene */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -52,6 +55,9 @@ const Home = () => {
             <AnimatedTechScene />
           </motion.div>
         </div>
+
+        {/* Timezone Clock */}
+        <TimezoneClock />
       </div>
     </section>
   );
