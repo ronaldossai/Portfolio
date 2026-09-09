@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { FaMusic, FaCamera } from 'react-icons/fa';
 import JupiterImage from '../assets/Jupiter astrophoto.jpg';
 import MarsImage from '../assets/Mars astrophoto.JPG';
+import VinylRecord from '../components/VinylRecord';
 
 const Interests = () => {
   const astrophotographyImages = [
@@ -107,6 +108,7 @@ const Interests = () => {
           <div className="flex items-center gap-3 mb-6">
             <FaMusic className="text-secondary text-3xl" />
             <h3 className="text-3xl font-bold text-light">Music Production</h3>
+            <VinylRecord size={72} className="ml-auto hidden sm:block" />
           </div>
           <p className="text-dark mb-8 max-w-2xl">
             Creating beats and melodies that express emotions and tell stories. Music production allows me to 
