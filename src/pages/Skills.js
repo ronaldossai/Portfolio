@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import SkillsCube from '../components/SkillsCube';
 
 const Skills = () => {
   const skills = [
@@ -34,7 +35,17 @@ const Skills = () => {
             <span className="text-light">Skills</span>
             <span className="h-px bg-tertiary flex-grow ml-4"></span>
           </h2>
-          
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6 }}
+            viewport={{ once: true }}
+            className="mt-10"
+          >
+            <SkillsCube />
+          </motion.div>
+
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mt-12">
             {skills.map((skillGroup, index) => (
               <motion.div
