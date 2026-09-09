@@ -123,7 +123,6 @@ const SkillsCube = () => {
         />
       </Canvas>
       <p className="absolute bottom-3 left-1/2 -translate-x-1/2 text-xs text-dark/70 font-mono pointer-events-none">
-        drag to explore
       </p>
     </div>
   );
