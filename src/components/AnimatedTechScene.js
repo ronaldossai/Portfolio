@@ -85,7 +85,7 @@ const AnimatedTechScene = () => {
           <div className="absolute left-3/4 top-0 h-full w-[1px] bg-secondary/70"></div>
         </div>
         
-        {/* CPU Pins - Left Side */}
+        {/* CPU Pins mapped to the Left Side */}
         <div className="absolute -left-1 top-1/2 transform -translate-y-1/2 h-3/4 flex flex-col justify-around">
           {[...Array(8)].map((_, i) => (
             <motion.div 
@@ -116,7 +116,7 @@ const AnimatedTechScene = () => {
           ))}
         </div>
         
-        {/* CPU Pins - Right Side */}
+        {/* CPU Pins mapped to the Right Side */}
         <div className="absolute -right-1 top-1/2 transform -translate-y-1/2 h-3/4 flex flex-col justify-around">
           {[...Array(8)].map((_, i) => (
             <motion.div 
@@ -148,7 +148,7 @@ const AnimatedTechScene = () => {
           ))}
         </div>
         
-        {/* CPU Pins - Top Side */}
+        {/* CPU Pins mapped to the Top Side */}
         <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-3/4 flex justify-around">
           {[...Array(6)].map((_, i) => (
             <motion.div 
@@ -180,7 +180,7 @@ const AnimatedTechScene = () => {
           ))}
         </div>
         
-        {/* CPU Pins - Bottom Side */}
+        {/* CPU Pins mapped to the Bottom Side */}
         <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-3/4 flex justify-around">
           {[...Array(6)].map((_, i) => (
             <motion.div 

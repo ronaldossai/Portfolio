@@ -179,7 +179,7 @@ const AnimatedTechScene = () => {
           ))}
         </div>
         
-        {/* CPU Pins - Bottom Side */}
+        {/* CPU Pins mapped to Bottom Side */}
         <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-3/4 flex justify-around">
           {[...Array(6)].map((_, i) => (
             <motion.div 
