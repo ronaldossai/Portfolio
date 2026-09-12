@@ -4,6 +4,7 @@ import { FaMusic, FaCamera } from 'react-icons/fa';
 import JupiterImage from '../assets/Jupiter astrophoto.jpg';
 import MarsImage from '../assets/Mars astrophoto.JPG';
 import VinylRecord from '../components/VinylRecord';
+import PlanetIcon from '../components/PlanetIcon';
 
 const Interests = () => {
   const astrophotographyImages = [
@@ -58,6 +59,7 @@ const Interests = () => {
           <div className="flex items-center gap-3 mb-6">
             <FaCamera className="text-secondary text-3xl" />
             <h3 className="text-3xl font-bold text-light">Astrophotography</h3>
+            <PlanetIcon size={72} className="ml-auto hidden sm:block" />
           </div>
           <p className="text-dark mb-8 max-w-2xl">
             Capturing the beauty of celestial objects through my telescope. Each image represents hours of observation, 
