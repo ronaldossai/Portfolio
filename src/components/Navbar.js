@@ -35,7 +35,7 @@ const Navbar = () => {
     >
       <div className="max-w-6xl mx-auto px-4 md:px-8 lg:px-16 flex justify-between items-center">
         {/* Logo */}
-        <a href="#home" className="text-secondary font-bold text-2xl">
+        <a href="#home" className="text-secondary font-bold text-2xl font-heading">
           RONALD OSSAI<span className="text-light"></span>
         </a>
 

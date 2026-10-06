@@ -13,7 +13,8 @@ module.exports = {
         dark: "#777777", // Adjusted to gray for better compatibility
       },
       fontFamily: {
-        sans: ['Special Elite', 'Inter', 'monospace'],
+        sans: ['Inter', 'sans-serif'],
+        heading: ['Space Grotesk', 'sans-serif'],
       },
       animation: {
         'spin-slow': 'spin 4s linear infinite',
