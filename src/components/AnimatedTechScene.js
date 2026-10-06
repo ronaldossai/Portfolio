@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 
 const AnimatedTechScene = () => {
   // Animation variants for different elements
-  debugger;
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -64,7 +63,16 @@ const AnimatedTechScene = () => {
   // CPU component with all its elements
   const CpuComponent = () => {
     const [isHovered, setIsHovered] = useState(false);
-    
+
+    // Per-core randomized timing so the grid flickers like independent CPU cores
+    // under load, rather than pulsing in lockstep.
+    const coreCells = useMemo(() => Array.from({ length: 16 }, () => ({
+      peak: 0.6 + Math.random() * 0.4,
+      flashDuration: 0.25 + Math.random() * 0.35,
+      restDuration: 0.6 + Math.random() * 2.2,
+      initialDelay: Math.random() * 2,
+    })), []);
+
     return (
       <motion.div
         className="relative w-28 h-28 md:w-32 md:h-32 lg:w-36 lg:h-36 bg-dark rounded-md flex items-center justify-center shadow-lg overflow-hidden"
@@ -221,27 +229,19 @@ const AnimatedTechScene = () => {
         <motion.div 
           className="w-20 h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 bg-secondary/20 rounded-sm grid grid-cols-4 grid-rows-4 gap-0.5 p-1"
         >
-          {[...Array(16)].map((_, i) => (
-            <motion.div 
+          {coreCells.map((cell, i) => (
+            <motion.div
               key={i}
-              className="bg-secondary/80" 
+              className="bg-secondary/80"
               initial={{ opacity: 0.3 }}
-              animate={{ 
-                opacity: isHovered ? [0.3, 1, 0.3] : [0.3, 0.7, 0.3],
-                scale: isHovered ? [1, 1.05, 1] : 1
-              }}
-              transition={{ 
-                opacity: {
-                  duration: isHovered ? 0.5 : 2, 
-                  repeat: Infinity, 
-                  repeatType: "reverse", 
-                  delay: i * (isHovered ? 0.05 : 0.1) % (isHovered ? 0.5 : 1)
-                },
-                scale: {
-                  duration: 0.5,
-                  repeat: isHovered ? Infinity : 0,
-                  repeatType: "reverse"
-                }
+              animate={{ opacity: [0.3, cell.peak] }}
+              transition={{
+                duration: isHovered ? cell.flashDuration * 0.6 : cell.flashDuration,
+                repeat: Infinity,
+                repeatType: "reverse",
+                repeatDelay: isHovered ? cell.restDuration * 0.25 : cell.restDuration,
+                delay: cell.initialDelay,
+                ease: "easeInOut"
               }}
             />
           ))}
