@@ -1,5 +1,36 @@
-import React, { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+
+// Builds a jagged polyline from the origin outward along `angle`, nudging each
+// vertex sideways so it reads as a lightning bolt rather than a straight ray.
+const buildBolt = (angle, length, segments, jitter) => {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  return Array.from({ length: segments + 1 }, (_, i) => {
+    const along = (length * i) / segments;
+    const offset = i === 0 ? 0 : (Math.random() - 0.5) * 2 * jitter;
+    return [along * cos - offset * sin, along * sin + offset * cos];
+  });
+};
+
+const toPath = (points) =>
+  points.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`).join(' ');
+
+// One burst = a ring of bolts radiating from the CPU, each with a small fork.
+const createLightningBurst = () => {
+  const count = 6 + Math.floor(Math.random() * 3);
+  return Array.from({ length: count }, (_, i) => {
+    const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
+    const points = buildBolt(angle, 150 + Math.random() * 110, 9, 14);
+    const [forkX, forkY] = points[3 + Math.floor(Math.random() * 3)];
+    const forkAngle = angle + (Math.random() < 0.5 ? -1 : 1) * (0.4 + Math.random() * 0.4);
+    const fork = buildBolt(forkAngle, 50 + Math.random() * 50, 5, 10)
+      .map(([x, y]) => [x + forkX, y + forkY]);
+    return { main: toPath(points), fork: toPath(fork), delay: Math.random() * 0.08 };
+  });
+};
+
+const LIGHTNING_DURATION_MS = 600;
 
 const AnimatedTechScene = () => {
   // Animation variants for different elements
@@ -63,6 +94,20 @@ const AnimatedTechScene = () => {
   // CPU component with all its elements
   const CpuComponent = () => {
     const [isHovered, setIsHovered] = useState(false);
+    const [bursts, setBursts] = useState([]);
+    const burstTimers = useRef([]);
+    const prefersReducedMotion = useReducedMotion();
+
+    useEffect(() => () => burstTimers.current.forEach(clearTimeout), []);
+
+    const triggerLightning = () => {
+      if (prefersReducedMotion) return;
+      const id = `${Date.now()}-${Math.random()}`;
+      setBursts((prev) => [...prev, { id, bolts: createLightningBurst() }]);
+      burstTimers.current.push(setTimeout(() => {
+        setBursts((prev) => prev.filter((burst) => burst.id !== id));
+      }, LIGHTNING_DURATION_MS + 150));
+    };
 
     // Per-core randomized timing so the grid flickers like independent CPU cores
     // under load, rather than pulsing in lockstep.
@@ -74,12 +119,83 @@ const AnimatedTechScene = () => {
     })), []);
 
     return (
+      <div className="relative">
+        {/* Lightning (click only) - sits behind the chip so bolts emerge from under it */}
+        <svg
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+          width="600"
+          height="600"
+          viewBox="-300 -300 600 600"
+          style={{ overflow: 'visible' }}
+          aria-hidden="true"
+        >
+          <defs>
+            <filter id="cpu-lightning-glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3" />
+            </filter>
+          </defs>
+          {bursts.map((burst) => (
+            <g key={burst.id}>
+              {burst.bolts.map((bolt, i) => (
+                <g key={i}>
+                  {[bolt.main, bolt.fork].map((d, j) => (
+                    <React.Fragment key={j}>
+                      <motion.path
+                        d={d}
+                        fill="none"
+                        stroke={i % 2 ? "#818cf8" : "#38bdf8"}
+                        strokeWidth={j ? 4 : 7}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        filter="url(#cpu-lightning-glow)"
+                        initial={{ pathLength: 0, opacity: 0 }}
+                        animate={{ pathLength: 1, opacity: [0, 0.9, 0.3, 0.8, 0] }}
+                        transition={{
+                          pathLength: { duration: 0.12, delay: bolt.delay + j * 0.06, ease: "easeOut" },
+                          opacity: { duration: LIGHTNING_DURATION_MS / 1000, delay: bolt.delay, times: [0, 0.15, 0.4, 0.55, 1] }
+                        }}
+                      />
+                      <motion.path
+                        d={d}
+                        fill="none"
+                        stroke="#f0f9ff"
+                        strokeWidth={j ? 1 : 1.75}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        initial={{ pathLength: 0, opacity: 0 }}
+                        animate={{ pathLength: 1, opacity: [0, 1, 0.4, 1, 0] }}
+                        transition={{
+                          pathLength: { duration: 0.12, delay: bolt.delay + j * 0.06, ease: "easeOut" },
+                          opacity: { duration: LIGHTNING_DURATION_MS / 1000, delay: bolt.delay, times: [0, 0.15, 0.4, 0.55, 1] }
+                        }}
+                      />
+                    </React.Fragment>
+                  ))}
+                </g>
+              ))}
+            </g>
+          ))}
+        </svg>
+
       <motion.div
-        className="relative w-28 h-28 md:w-32 md:h-32 lg:w-36 lg:h-36 bg-dark rounded-md flex items-center justify-center shadow-lg overflow-hidden"
+        className="relative w-28 h-28 md:w-32 md:h-32 lg:w-36 lg:h-36 bg-dark rounded-md flex items-center justify-center shadow-lg overflow-hidden cursor-pointer"
         whileHover={{ scale: 1.05, rotate: 2 }}
+        whileTap={{ scale: 0.97 }}
         onHoverStart={() => setIsHovered(true)}
         onHoverEnd={() => setIsHovered(false)}
+        onTap={triggerLightning}
       >
+        {/* Brief discharge flash across the chip on click */}
+        {bursts.length > 0 && (
+          <motion.div
+            key={bursts[bursts.length - 1].id}
+            className="absolute inset-0 bg-sky-100 pointer-events-none z-20"
+            initial={{ opacity: 0.45 }}
+            animate={{ opacity: 0 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+          />
+        )}
+
         {/* CPU Corner Notch */}
         <div className="absolute top-0 left-0 w-4 h-4 bg-tertiary rounded-br-md" />
         
@@ -247,6 +363,7 @@ const AnimatedTechScene = () => {
           ))}
         </motion.div>
       </motion.div>
+      </div>
     );
   };
 
