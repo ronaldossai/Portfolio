@@ -445,15 +445,15 @@ const AnimatedTechScene = () => {
         
         {/* Floating elements */}
         <motion.div 
-          className="absolute top-12 left-12 md:top-16 md:left-16 w-8 h-8 bg-primary/60 rounded-full"
+          className="absolute top-12 left-12 md:top-16 md:left-16 w-8 h-8 bg-primary/60 hover:bg-primary/80 transition-colors rounded-full"
           variants={itemVariants}
-          whileHover={{ scale: 1.2, backgroundColor: "rgba(var(--color-primary), 0.8)" }}
+          whileHover={{ scale: 1.2 }}
         />
 
         <motion.div 
-          className="absolute bottom-16 left-20 md:bottom-24 md:left-28 w-10 h-4 bg-secondary/60 rounded-sm"
+          className="absolute bottom-16 left-20 md:bottom-24 md:left-28 w-10 h-4 bg-secondary/60 hover:bg-secondary/80 transition-colors rounded-sm"
           variants={itemVariants}
-          whileHover={{ scale: 1.2, backgroundColor: "rgba(var(--color-secondary), 0.8)" }}
+          whileHover={{ scale: 1.2 }}
         />
 
         <motion.div 
