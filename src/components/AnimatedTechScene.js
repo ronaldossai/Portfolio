@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 
 // Builds a jagged polyline from the origin outward along `angle`, nudging each
 // vertex sideways so it reads as a lightning bolt rather than a straight ray.
@@ -95,6 +95,7 @@ const AnimatedTechScene = () => {
   const CpuComponent = () => {
     const [isHovered, setIsHovered] = useState(false);
     const [bursts, setBursts] = useState([]);
+    const [hasClicked, setHasClicked] = useState(false);
     const burstTimers = useRef([]);
     const prefersReducedMotion = useReducedMotion();
 
@@ -102,6 +103,7 @@ const AnimatedTechScene = () => {
 
     const triggerLightning = () => {
       if (prefersReducedMotion) return;
+      setHasClicked(true);
       const id = `${Date.now()}-${Math.random()}`;
       setBursts((prev) => [...prev, { id, bolts: createLightningBurst() }]);
       burstTimers.current.push(setTimeout(() => {
@@ -363,6 +365,29 @@ const AnimatedTechScene = () => {
           ))}
         </motion.div>
       </motion.div>
+
+        {/* Terminal-style hint that the chip is clickable; retires after the first click */}
+        <AnimatePresence>
+        {!hasClicked && !prefersReducedMotion && (
+          <motion.div
+            key="overclock-hint"
+            className="absolute left-1/2 -translate-x-1/2 top-full mt-4 whitespace-nowrap font-mono text-[10px] md:text-xs text-secondary/70 pointer-events-none select-none"
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, transition: { duration: 0.3 } }}
+            transition={{ delay: 2.5, duration: 0.6 }}
+            aria-hidden="true"
+          >
+            {'> overclock'}
+            <motion.span
+              animate={{ opacity: [1, 1, 0, 0] }}
+              transition={{ duration: 1, repeat: Infinity, times: [0, 0.5, 0.5, 1] }}
+            >
+              _
+            </motion.span>
+          </motion.div>
+        )}
+        </AnimatePresence>
       </div>
     );
   };
