@@ -1,14 +1,15 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence, useAnimationControls, useReducedMotion } from 'framer-motion';
 
 // Builds a jagged polyline from the origin outward along `angle`, nudging each
 // vertex sideways so it reads as a lightning bolt rather than a straight ray.
+// Both ends stay on the ray so aimed bolts land exactly on their target.
 const buildBolt = (angle, length, segments, jitter) => {
   const cos = Math.cos(angle);
   const sin = Math.sin(angle);
   return Array.from({ length: segments + 1 }, (_, i) => {
     const along = (length * i) / segments;
-    const offset = i === 0 ? 0 : (Math.random() - 0.5) * 2 * jitter;
+    const offset = i === 0 || i === segments ? 0 : (Math.random() - 0.5) * 2 * jitter;
     return [along * cos - offset * sin, along * sin + offset * cos];
   });
 };
@@ -17,8 +18,14 @@ const toPath = (points) =>
   points.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`).join(' ');
 
 // One burst = a ring of bolts radiating from the CPU, each with a small fork.
-// `intensity` (0..1) adds more and longer bolts as the chip heats up.
-const createLightningBurst = (intensity = 0) => {
+// `intensity` (0..1) adds more and longer bolts as the chip heats up, and each
+// strike ({ dx, dy, dist } in SVG units) gets a bolt aimed straight at it.
+const createLightningBurst = (intensity = 0, strikes = []) => {
+  const aimed = strikes.map(({ dx, dy, dist }) => ({
+    main: toPath(buildBolt(Math.atan2(dy, dx), dist, Math.max(6, Math.round(dist / 30)), Math.min(14, dist * 0.06))),
+    fork: null,
+    delay: 0,
+  }));
   const count = 6 + Math.floor(Math.random() * 3) + Math.round(intensity * 5);
   const reach = 1 + intensity * 0.5;
   return Array.from({ length: count }, (_, i) => {
@@ -29,7 +36,7 @@ const createLightningBurst = (intensity = 0) => {
     const fork = buildBolt(forkAngle, 50 + Math.random() * 50, 5, 10)
       .map(([x, y]) => [x + forkX, y + forkY]);
     return { main: toPath(points), fork: toPath(fork), delay: Math.random() * 0.08 };
-  });
+  }).concat(aimed);
 };
 
 const LIGHTNING_DURATION_MS = 600;
@@ -39,9 +46,96 @@ const LIGHTNING_DURATION_MS = 600;
 const THROTTLE_CLICKS = 10;
 const HEAT_DECAY_MS = 1200;
 const THROTTLE_DURATION_MS = 3000;
+// Matches the bolt draw-in time, so a shape reacts as the bolt reaches it.
+const STRIKE_DELAY_MS = 120;
+
+const SHAPE_ENTRY = {
+  hidden: { y: 20, opacity: 0 },
+  visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } }
+};
+
+const SHAPE_FLOAT = {
+  initial: { y: 0 },
+  animate: {
+    y: [0, -10, 0],
+    transition: { duration: 3, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }
+  }
+};
+
+// Decorative components scattered around the board. Positions are percentages
+// of the scene panel so the layout scales with it, and the CPU measures their
+// live on-screen positions at click time, so strikes land at any window size.
+const BOARD_SHAPES = [
+  { position: 'top-[12%] left-[14%]', shape: 'w-8 h-8 bg-primary/80 rounded-md', float: true },
+  { position: 'top-[30%] left-[5%]', shape: 'w-8 h-8 bg-primary/60 rounded-full' },
+  { position: 'top-[58%] left-[7%]', shape: 'w-5 h-16 bg-dark/60 rounded-md' },
+  { position: 'bottom-[12%] left-[20%]', shape: 'w-10 h-4 bg-secondary/60 rounded-sm' },
+  { position: 'top-[8%] right-[30%]', shape: 'w-10 h-5 bg-dark/40 rounded-sm', float: true },
+  { position: 'top-[14%] right-[9%]', shape: 'w-12 h-12 bg-dark/30 rounded-md' },
+  { position: 'top-[44%] right-[5%]', shape: 'w-10 h-10 bg-primary/40 rounded-full' },
+  { position: 'bottom-[22%] right-[14%]', shape: 'w-6 h-6 bg-secondary/80 rounded-full', float: true },
+  { position: 'bottom-[8%] right-[30%]', shape: 'w-6 h-14 bg-primary/60 rounded-md' },
+];
+
+// A board shape that registers itself so the CPU can find and strike it.
+// Layers: entry animation > knockback > optional float > hoverable body.
+const BoardShape = ({ id, position, shape, float, registry }) => {
+  const knockback = useAnimationControls();
+  const bodyRef = useRef(null);
+  const [zapCount, setZapCount] = useState(0);
+
+  useEffect(() => {
+    const shapes = registry.current;
+    shapes.set(id, {
+      el: bodyRef,
+      // (dirX, dirY) is the unit vector away from the CPU; strength is 0..1.
+      zap: (dirX, dirY, strength) => {
+        const push = 6 + strength * 12;
+        setZapCount((n) => n + 1);
+        knockback.start({
+          x: [0, dirX * push, 0],
+          y: [0, dirY * push, 0],
+          rotate: [0, (Math.random() - 0.5) * 30 * (0.3 + strength), 0],
+          transition: { duration: 0.6, times: [0, 0.12, 1], ease: "easeOut" }
+        });
+      }
+    });
+    return () => shapes.delete(id);
+  }, [id, registry, knockback]);
+
+  const body = (
+    <motion.div
+      ref={bodyRef}
+      className={`relative ${shape} transition-shadow duration-200 hover:shadow-[0_0_14px_rgba(255,215,0,0.45)]`}
+      whileHover={{ y: -3, scale: 1.1 }}
+    >
+      {/* Gold flash when struck */}
+      {zapCount > 0 && (
+        <motion.div
+          key={zapCount}
+          className="absolute inset-0 rounded-[inherit] bg-secondary pointer-events-none"
+          style={{ boxShadow: '0 0 18px rgba(255, 215, 0, 0.8)' }}
+          initial={{ opacity: 0.95 }}
+          animate={{ opacity: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+        />
+      )}
+    </motion.div>
+  );
+
+  return (
+    <motion.div className={`absolute ${position} pointer-events-auto`} variants={SHAPE_ENTRY}>
+      <motion.div animate={knockback}>
+        {float ? (
+          <motion.div variants={SHAPE_FLOAT} initial="initial" animate="animate">{body}</motion.div>
+        ) : body}
+      </motion.div>
+    </motion.div>
+  );
+};
 
 // CPU component with all its elements
-const CpuComponent = () => {
+const CpuComponent = ({ shapeRegistry }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [bursts, setBursts] = useState([]);
   const [hasClicked, setHasClicked] = useState(false);
@@ -50,6 +144,7 @@ const CpuComponent = () => {
   const heatRef = useRef(0);
   const timers = useRef([]);
   const heatDecayTimer = useRef();
+  const svgRef = useRef(null);
   const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => () => {
@@ -62,13 +157,35 @@ const CpuComponent = () => {
     setHeat(value);
   };
 
+  // Live offsets from the CPU to every board shape, in SVG units. Measuring on
+  // click keeps aim correct after resizes; dividing by the SVG's rendered scale
+  // absorbs transforms on ancestors such as the board's pulse.
+  const measureShapes = () => {
+    const svg = svgRef.current;
+    if (!svg || !shapeRegistry) return [];
+    const box = svg.getBoundingClientRect();
+    const unit = box.width / 600;
+    const cx = box.left + box.width / 2;
+    const cy = box.top + box.height / 2;
+    return [...shapeRegistry.current.values()].flatMap((shape) => {
+      const rect = shape.el.current?.getBoundingClientRect();
+      if (!rect) return [];
+      const dx = (rect.left + rect.width / 2 - cx) / unit;
+      const dy = (rect.top + rect.height / 2 - cy) / unit;
+      const dist = Math.hypot(dx, dy);
+      return dist > 0 ? [{ shape, dx, dy, dist }] : [];
+    });
+  };
+
   const triggerLightning = () => {
     if (prefersReducedMotion || isThrottled) return;
     setHasClicked(true);
 
     const nextHeat = Math.min(heatRef.current + 1, THROTTLE_CLICKS);
+    const intensity = nextHeat / THROTTLE_CLICKS;
+    const tripped = nextHeat >= THROTTLE_CLICKS;
     clearTimeout(heatDecayTimer.current);
-    if (nextHeat >= THROTTLE_CLICKS) {
+    if (tripped) {
       // Final click fires one maximum burst, then the chip locks up to cool down.
       setHeatLevel(0);
       setIsThrottled(true);
@@ -78,8 +195,18 @@ const CpuComponent = () => {
       heatDecayTimer.current = setTimeout(() => setHeatLevel(0), HEAT_DECAY_MS);
     }
 
+    // Strike 1-3 random shapes as heat builds; tripping the throttle hits them all.
+    const shapes = measureShapes().sort(() => Math.random() - 0.5);
+    const strikes = tripped ? shapes : shapes.slice(0, 1 + Math.round(intensity * 2));
+    strikes.forEach(({ shape, dx, dy, dist }) => {
+      timers.current.push(setTimeout(
+        () => shape.zap(dx / dist, dy / dist, tripped ? 1 : intensity),
+        STRIKE_DELAY_MS
+      ));
+    });
+
     const id = `${Date.now()}-${Math.random()}`;
-    setBursts((prev) => [...prev, { id, bolts: createLightningBurst(nextHeat / THROTTLE_CLICKS) }]);
+    setBursts((prev) => [...prev, { id, bolts: createLightningBurst(intensity, strikes) }]);
     timers.current.push(setTimeout(() => {
       setBursts((prev) => prev.filter((burst) => burst.id !== id));
     }, LIGHTNING_DURATION_MS + 150));
@@ -104,6 +231,7 @@ const CpuComponent = () => {
     >
       {/* Lightning (click only) - sits behind the chip so bolts emerge from under it */}
       <svg
+        ref={svgRef}
         className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
         width="600"
         height="600"
@@ -120,7 +248,7 @@ const CpuComponent = () => {
           <g key={burst.id}>
             {burst.bolts.map((bolt, i) => (
               <g key={i}>
-                {[bolt.main, bolt.fork].map((d, j) => (
+                {[bolt.main, bolt.fork].filter(Boolean).map((d, j) => (
                   <React.Fragment key={j}>
                     <motion.path
                       d={d}
@@ -400,15 +528,6 @@ const AnimatedTechScene = () => {
     }
   };
 
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: { type: "spring", stiffness: 100 }
-    }
-  };
-
   const pulseVariants = {
     initial: { scale: 1 },
     animate: { 
@@ -433,18 +552,7 @@ const AnimatedTechScene = () => {
     }
   };
 
-  const floatVariants = {
-    initial: { y: 0 },
-    animate: { 
-      y: [0, -10, 0],
-      transition: { 
-        duration: 3,
-        repeat: Infinity,
-        repeatType: "reverse",
-        ease: "easeInOut" 
-      }
-    }
-  };
+  const shapeRegistry = useRef(new Map());
 
   return (
     <div className="h-64 md:h-96 lg:h-[30rem] w-full flex items-center justify-center">
@@ -488,74 +596,16 @@ const AnimatedTechScene = () => {
             transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
           />
 
-          {/* Tech elements */}
-          <motion.div 
-            className="absolute top-12 left-6"
-            variants={floatVariants}
-            initial="initial"
-            animate="animate"
-          >
-            <div className="w-8 h-8 bg-primary/80 rounded-md"></div>
-          </motion.div>
-
-          <motion.div 
-            className="absolute bottom-16 right-10"
-            variants={floatVariants}
-            initial="initial"
-            animate="animate"
-          >
-            <div className="w-6 h-6 bg-secondary/80 rounded-full"></div>
-          </motion.div>
-
-          <motion.div 
-            className="absolute top-8 right-14"
-            variants={floatVariants}
-            initial="initial"
-            animate="animate"
-          >
-            <div className="w-10 h-5 bg-tertiary/80 rounded-sm"></div>
-          </motion.div>
-          
           {/* CPU Component */}
-          <CpuComponent />
+          <CpuComponent shapeRegistry={shapeRegistry} />
         </motion.div>
         
-        {/* Floating elements */}
-        <motion.div 
-          className="absolute top-12 left-12 md:top-16 md:left-16 w-8 h-8 bg-primary/60 hover:bg-primary/80 transition-colors rounded-full"
-          variants={itemVariants}
-          whileHover={{ scale: 1.2 }}
-        />
-
-        <motion.div 
-          className="absolute bottom-16 left-20 md:bottom-24 md:left-28 w-10 h-4 bg-secondary/60 hover:bg-secondary/80 transition-colors rounded-sm"
-          variants={itemVariants}
-          whileHover={{ scale: 1.2 }}
-        />
-
-        <motion.div 
-          className="absolute top-1/4 right-14 md:right-20 w-12 h-12 bg-tertiary/80 rounded-md"
-          variants={itemVariants}
-          whileHover={{ scale: 1.2, rotate: 45 }}
-        />
-
-        <motion.div 
-          className="absolute bottom-16 right-16 md:bottom-24 md:right-24 w-6 h-14 bg-primary/60 rounded-md"
-          variants={itemVariants}
-          whileHover={{ scale: 1.2 }}
-        />
-        
-        <motion.div 
-          className="absolute top-1/2 left-8 md:left-12 w-5 h-16 bg-dark/60 rounded-md"
-          variants={itemVariants}
-          whileHover={{ scale: 1.2, rotate: -15 }}
-        />
-
-        <motion.div 
-          className="absolute top-20 right-1/4 w-10 h-10 bg-primary/40 rounded-full"
-          variants={itemVariants}
-          whileHover={{ scale: 1.2 }}
-        />
+        {/* Board shapes - layered above the circle so every one is hoverable */}
+        <div className="absolute inset-0 z-20 pointer-events-none">
+          {BOARD_SHAPES.map((shape, i) => (
+            <BoardShape key={i} id={i} {...shape} registry={shapeRegistry} />
+          ))}
+        </div>
       </motion.div>
     </div>
   );
