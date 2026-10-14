@@ -17,11 +17,13 @@ const toPath = (points) =>
   points.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`).join(' ');
 
 // One burst = a ring of bolts radiating from the CPU, each with a small fork.
-const createLightningBurst = () => {
-  const count = 6 + Math.floor(Math.random() * 3);
+// `intensity` (0..1) adds more and longer bolts as the chip heats up.
+const createLightningBurst = (intensity = 0) => {
+  const count = 6 + Math.floor(Math.random() * 3) + Math.round(intensity * 5);
+  const reach = 1 + intensity * 0.5;
   return Array.from({ length: count }, (_, i) => {
     const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
-    const points = buildBolt(angle, 150 + Math.random() * 110, 9, 14);
+    const points = buildBolt(angle, (150 + Math.random() * 110) * reach, 9, 14);
     const [forkX, forkY] = points[3 + Math.floor(Math.random() * 3)];
     const forkAngle = angle + (Math.random() < 0.5 ? -1 : 1) * (0.4 + Math.random() * 0.4);
     const fork = buildBolt(forkAngle, 50 + Math.random() * 50, 5, 10)
@@ -31,6 +33,359 @@ const createLightningBurst = () => {
 };
 
 const LIGHTNING_DURATION_MS = 600;
+
+// Rapid clicks build heat; hitting the limit trips a thermal throttle that
+// locks out lightning until the chip cools down.
+const THROTTLE_CLICKS = 10;
+const HEAT_DECAY_MS = 1200;
+const THROTTLE_DURATION_MS = 3000;
+
+// CPU component with all its elements
+const CpuComponent = () => {
+  const [isHovered, setIsHovered] = useState(false);
+  const [bursts, setBursts] = useState([]);
+  const [hasClicked, setHasClicked] = useState(false);
+  const [heat, setHeat] = useState(0);
+  const [isThrottled, setIsThrottled] = useState(false);
+  const heatRef = useRef(0);
+  const timers = useRef([]);
+  const heatDecayTimer = useRef();
+  const prefersReducedMotion = useReducedMotion();
+
+  useEffect(() => () => {
+    timers.current.forEach(clearTimeout);
+    clearTimeout(heatDecayTimer.current);
+  }, []);
+
+  const setHeatLevel = (value) => {
+    heatRef.current = value;
+    setHeat(value);
+  };
+
+  const triggerLightning = () => {
+    if (prefersReducedMotion || isThrottled) return;
+    setHasClicked(true);
+
+    const nextHeat = Math.min(heatRef.current + 1, THROTTLE_CLICKS);
+    clearTimeout(heatDecayTimer.current);
+    if (nextHeat >= THROTTLE_CLICKS) {
+      // Final click fires one maximum burst, then the chip locks up to cool down.
+      setHeatLevel(0);
+      setIsThrottled(true);
+      timers.current.push(setTimeout(() => setIsThrottled(false), THROTTLE_DURATION_MS));
+    } else {
+      setHeatLevel(nextHeat);
+      heatDecayTimer.current = setTimeout(() => setHeatLevel(0), HEAT_DECAY_MS);
+    }
+
+    const id = `${Date.now()}-${Math.random()}`;
+    setBursts((prev) => [...prev, { id, bolts: createLightningBurst(nextHeat / THROTTLE_CLICKS) }]);
+    timers.current.push(setTimeout(() => {
+      setBursts((prev) => prev.filter((burst) => burst.id !== id));
+    }, LIGHTNING_DURATION_MS + 150));
+  };
+
+  const heatLevel = isThrottled ? 1 : heat / THROTTLE_CLICKS;
+
+  // Per-core randomized timing so the grid flickers like independent CPU cores
+  // under load, rather than pulsing in lockstep.
+  const coreCells = useMemo(() => Array.from({ length: 16 }, () => ({
+    peak: 0.6 + Math.random() * 0.4,
+    flashDuration: 0.25 + Math.random() * 0.35,
+    restDuration: 0.6 + Math.random() * 2.2,
+    initialDelay: Math.random() * 2,
+  })), []);
+
+  return (
+    <motion.div
+      className="relative"
+      animate={isThrottled ? { x: [0, -2, 2, -1, 1, 0] } : { x: 0 }}
+      transition={isThrottled ? { duration: 0.3, repeat: 4 } : { duration: 0.2 }}
+    >
+      {/* Lightning (click only) - sits behind the chip so bolts emerge from under it */}
+      <svg
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+        width="600"
+        height="600"
+        viewBox="-300 -300 600 600"
+        style={{ overflow: 'visible' }}
+        aria-hidden="true"
+      >
+        <defs>
+          <filter id="cpu-lightning-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" />
+          </filter>
+        </defs>
+        {bursts.map((burst) => (
+          <g key={burst.id}>
+            {burst.bolts.map((bolt, i) => (
+              <g key={i}>
+                {[bolt.main, bolt.fork].map((d, j) => (
+                  <React.Fragment key={j}>
+                    <motion.path
+                      d={d}
+                      fill="none"
+                      stroke={i % 2 ? "#818cf8" : "#38bdf8"}
+                      strokeWidth={j ? 4 : 7}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      filter="url(#cpu-lightning-glow)"
+                      initial={{ pathLength: 0, opacity: 0 }}
+                      animate={{ pathLength: 1, opacity: [0, 0.9, 0.3, 0.8, 0] }}
+                      transition={{
+                        pathLength: { duration: 0.12, delay: bolt.delay + j * 0.06, ease: "easeOut" },
+                        opacity: { duration: LIGHTNING_DURATION_MS / 1000, delay: bolt.delay, times: [0, 0.15, 0.4, 0.55, 1] }
+                      }}
+                    />
+                    <motion.path
+                      d={d}
+                      fill="none"
+                      stroke="#f0f9ff"
+                      strokeWidth={j ? 1 : 1.75}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      initial={{ pathLength: 0, opacity: 0 }}
+                      animate={{ pathLength: 1, opacity: [0, 1, 0.4, 1, 0] }}
+                      transition={{
+                        pathLength: { duration: 0.12, delay: bolt.delay + j * 0.06, ease: "easeOut" },
+                        opacity: { duration: LIGHTNING_DURATION_MS / 1000, delay: bolt.delay, times: [0, 0.15, 0.4, 0.55, 1] }
+                      }}
+                    />
+                  </React.Fragment>
+                ))}
+              </g>
+            ))}
+          </g>
+        ))}
+      </svg>
+
+    <motion.div
+      className="relative w-28 h-28 md:w-32 md:h-32 lg:w-36 lg:h-36 bg-dark rounded-md flex items-center justify-center shadow-lg overflow-hidden cursor-pointer transition-shadow duration-700"
+      style={{
+        boxShadow: heatLevel > 0
+          ? `0 0 ${8 + heatLevel * 28}px rgba(255, ${Math.round(140 - heatLevel * 110)}, 0, ${0.25 + heatLevel * 0.5})`
+          : undefined
+      }}
+      whileHover={{ scale: 1.05, rotate: 2 }}
+      whileTap={{ scale: 0.97 }}
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
+      onTap={triggerLightning}
+    >
+      {/* Brief discharge flash across the chip on click */}
+      {bursts.length > 0 && (
+        <motion.div
+          key={bursts[bursts.length - 1].id}
+          className="absolute inset-0 bg-sky-100 pointer-events-none z-20"
+          initial={{ opacity: 0.45 }}
+          animate={{ opacity: 0 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+        />
+      )}
+
+      {/* CPU Corner Notch */}
+      <div className="absolute top-0 left-0 w-4 h-4 bg-tertiary rounded-br-md" />
+      
+      {/* Subtle Circuit Pattern */}
+      <div className="absolute inset-0 opacity-10 pointer-events-none">
+        <div className="absolute top-1/4 left-0 w-full h-[1px] bg-secondary/70"></div>
+        <div className="absolute top-2/4 left-0 w-full h-[1px] bg-secondary/70"></div>
+        <div className="absolute top-3/4 left-0 w-full h-[1px] bg-secondary/70"></div>
+        <div className="absolute left-1/4 top-0 h-full w-[1px] bg-secondary/70"></div>
+        <div className="absolute left-2/4 top-0 h-full w-[1px] bg-secondary/70"></div>
+        <div className="absolute left-3/4 top-0 h-full w-[1px] bg-secondary/70"></div>
+      </div>
+      
+      {/* CPU Pins mapped to the Left Side */}
+      <div className="absolute -left-1 top-1/2 transform -translate-y-1/2 h-3/4 flex flex-col justify-around">
+        {[...Array(8)].map((_, i) => (
+          <motion.div 
+            key={`pin-left-${i}`}
+            className="w-2 h-1 rounded-sm shadow-sm"
+            style={{ backgroundColor: isHovered ? "#38bdf8" : "#71717a" }}
+            initial={{ x: 0 }}
+            animate={{ 
+              x: [-1, 0, -1],
+              backgroundColor: isHovered 
+                ? ["#71717a", "#38bdf8", "#818cf8", "#71717a"]
+                : "#71717a"
+            }}
+            transition={{ 
+              x: {
+                duration: 3, 
+                repeat: Infinity, 
+                repeatType: "reverse", 
+                delay: i * 0.2 % 1.5
+              },
+              backgroundColor: {
+                duration: 0.8,
+                repeat: isHovered ? Infinity : 0,
+                repeatType: "reverse"
+              }
+            }}
+          />
+        ))}
+      </div>
+      
+      {/* CPU Pins mapped to the Right Side */}
+      <div className="absolute -right-1 top-1/2 transform -translate-y-1/2 h-3/4 flex flex-col justify-around">
+        {[...Array(8)].map((_, i) => (
+          <motion.div 
+            key={`pin-right-${i}`}
+            className="w-2 h-1 rounded-sm shadow-sm"
+            style={{ backgroundColor: isHovered ? "#38bdf8" : "#71717a" }}
+            initial={{ x: 0 }}
+            animate={{ 
+              x: [1, 0, 1],
+              backgroundColor: isHovered 
+                ? ["#71717a", "#38bdf8", "#818cf8", "#71717a"]
+                : "#71717a"
+            }}
+            transition={{ 
+              x: {
+                duration: 3, 
+                repeat: Infinity, 
+                repeatType: "reverse", 
+                delay: i * 0.15 % 1.2
+              },
+              backgroundColor: {
+                duration: 0.8,
+                repeat: isHovered ? Infinity : 0,
+                repeatType: "reverse",
+                delay: i * 0.05
+              }
+            }}
+          />
+        ))}
+      </div>
+      
+      {/* CPU Pins mapped to the Top Side */}
+      <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-3/4 flex justify-around">
+        {[...Array(6)].map((_, i) => (
+          <motion.div 
+            key={`pin-top-${i}`}
+            className="h-2 w-1 rounded-sm shadow-sm"
+            style={{ backgroundColor: isHovered ? "#38bdf8" : "#71717a" }}
+            initial={{ y: 0 }}
+            animate={{ 
+              y: [-1, 0, -1],
+              backgroundColor: isHovered 
+                ? ["#71717a", "#38bdf8", "#818cf8", "#71717a"]
+                : "#71717a"
+            }}
+            transition={{ 
+              y: {
+                duration: 2.5, 
+                repeat: Infinity, 
+                repeatType: "reverse", 
+                delay: i * 0.25 % 1.8
+              },
+              backgroundColor: {
+                duration: 0.8,
+                repeat: isHovered ? Infinity : 0,
+                repeatType: "reverse",
+                delay: i * 0.1
+              }
+            }}
+          />
+        ))}
+      </div>
+      
+      {/* CPU Pins mapped to the Bottom Side */}
+      <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-3/4 flex justify-around">
+        {[...Array(6)].map((_, i) => (
+          <motion.div 
+            key={`pin-bottom-${i}`}
+            className="h-2 w-1 rounded-sm shadow-sm"
+            style={{ backgroundColor: isHovered ? "#38bdf8" : "#71717a" }}
+            initial={{ y: 0 }}
+            animate={{ 
+              y: [1, 0, 1],
+              backgroundColor: isHovered 
+                ? ["#71717a", "#38bdf8", "#818cf8", "#71717a"]
+                : "#71717a"
+            }}
+            transition={{ 
+              y: {
+                duration: 2.8, 
+                repeat: Infinity, 
+                repeatType: "reverse", 
+                delay: i * 0.18 % 1.4
+              },
+              backgroundColor: {
+                duration: 0.8,
+                repeat: isHovered ? Infinity : 0,
+                repeatType: "reverse",
+                delay: i * 0.15
+              }
+            }}
+          />
+        ))}
+      </div>
+      
+      {/* CPU Label */}
+      {isThrottled ? (
+        <motion.div
+          className="absolute top-2 right-2 text-[8px] text-red-500 font-mono font-bold"
+          animate={{ opacity: [1, 1, 0.2, 0.2] }}
+          transition={{ duration: 0.5, repeat: Infinity, times: [0, 0.5, 0.5, 1] }}
+        >
+          THERMAL THROTTLE
+        </motion.div>
+      ) : (
+        <div className="absolute top-2 right-2 text-[8px] text-secondary/80 font-mono">
+          RO-CPU 9000
+        </div>
+      )}
+      
+      {/* CPU Core */}
+      <motion.div 
+        className="w-20 h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 bg-secondary/20 rounded-sm grid grid-cols-4 grid-rows-4 gap-0.5 p-1"
+      >
+        {coreCells.map((cell, i) => (
+          <motion.div
+            key={i}
+            className={`transition-colors duration-700 ${isThrottled ? "bg-red-500/90" : "bg-secondary/80"}`}
+            initial={{ opacity: 0.3 }}
+            animate={{ opacity: [0.3, cell.peak] }}
+            transition={{
+              duration: isHovered ? cell.flashDuration * 0.6 : cell.flashDuration,
+              repeat: Infinity,
+              repeatType: "reverse",
+              repeatDelay: isHovered ? cell.restDuration * 0.25 : cell.restDuration,
+              delay: cell.initialDelay,
+              ease: "easeInOut"
+            }}
+          />
+        ))}
+      </motion.div>
+    </motion.div>
+
+      {/* Terminal-style hint that the chip is clickable; retires after the first click */}
+      <AnimatePresence>
+      {!hasClicked && !prefersReducedMotion && (
+        <motion.div
+          key="overclock-hint"
+          className="absolute left-1/2 -translate-x-1/2 top-full mt-4 whitespace-nowrap font-mono text-[10px] md:text-xs text-secondary/70 pointer-events-none select-none"
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, transition: { duration: 0.3 } }}
+          transition={{ delay: 2.5, duration: 0.6 }}
+          aria-hidden="true"
+        >
+          {'> overclock'}
+          <motion.span
+            animate={{ opacity: [1, 1, 0, 0] }}
+            transition={{ duration: 1, repeat: Infinity, times: [0, 0.5, 0.5, 1] }}
+          >
+            _
+          </motion.span>
+        </motion.div>
+      )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
 
 const AnimatedTechScene = () => {
   // Animation variants for different elements
@@ -91,307 +446,6 @@ const AnimatedTechScene = () => {
     }
   };
 
-  // CPU component with all its elements
-  const CpuComponent = () => {
-    const [isHovered, setIsHovered] = useState(false);
-    const [bursts, setBursts] = useState([]);
-    const [hasClicked, setHasClicked] = useState(false);
-    const burstTimers = useRef([]);
-    const prefersReducedMotion = useReducedMotion();
-
-    useEffect(() => () => burstTimers.current.forEach(clearTimeout), []);
-
-    const triggerLightning = () => {
-      if (prefersReducedMotion) return;
-      setHasClicked(true);
-      const id = `${Date.now()}-${Math.random()}`;
-      setBursts((prev) => [...prev, { id, bolts: createLightningBurst() }]);
-      burstTimers.current.push(setTimeout(() => {
-        setBursts((prev) => prev.filter((burst) => burst.id !== id));
-      }, LIGHTNING_DURATION_MS + 150));
-    };
-
-    // Per-core randomized timing so the grid flickers like independent CPU cores
-    // under load, rather than pulsing in lockstep.
-    const coreCells = useMemo(() => Array.from({ length: 16 }, () => ({
-      peak: 0.6 + Math.random() * 0.4,
-      flashDuration: 0.25 + Math.random() * 0.35,
-      restDuration: 0.6 + Math.random() * 2.2,
-      initialDelay: Math.random() * 2,
-    })), []);
-
-    return (
-      <div className="relative">
-        {/* Lightning (click only) - sits behind the chip so bolts emerge from under it */}
-        <svg
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-          width="600"
-          height="600"
-          viewBox="-300 -300 600 600"
-          style={{ overflow: 'visible' }}
-          aria-hidden="true"
-        >
-          <defs>
-            <filter id="cpu-lightning-glow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="3" />
-            </filter>
-          </defs>
-          {bursts.map((burst) => (
-            <g key={burst.id}>
-              {burst.bolts.map((bolt, i) => (
-                <g key={i}>
-                  {[bolt.main, bolt.fork].map((d, j) => (
-                    <React.Fragment key={j}>
-                      <motion.path
-                        d={d}
-                        fill="none"
-                        stroke={i % 2 ? "#818cf8" : "#38bdf8"}
-                        strokeWidth={j ? 4 : 7}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        filter="url(#cpu-lightning-glow)"
-                        initial={{ pathLength: 0, opacity: 0 }}
-                        animate={{ pathLength: 1, opacity: [0, 0.9, 0.3, 0.8, 0] }}
-                        transition={{
-                          pathLength: { duration: 0.12, delay: bolt.delay + j * 0.06, ease: "easeOut" },
-                          opacity: { duration: LIGHTNING_DURATION_MS / 1000, delay: bolt.delay, times: [0, 0.15, 0.4, 0.55, 1] }
-                        }}
-                      />
-                      <motion.path
-                        d={d}
-                        fill="none"
-                        stroke="#f0f9ff"
-                        strokeWidth={j ? 1 : 1.75}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        initial={{ pathLength: 0, opacity: 0 }}
-                        animate={{ pathLength: 1, opacity: [0, 1, 0.4, 1, 0] }}
-                        transition={{
-                          pathLength: { duration: 0.12, delay: bolt.delay + j * 0.06, ease: "easeOut" },
-                          opacity: { duration: LIGHTNING_DURATION_MS / 1000, delay: bolt.delay, times: [0, 0.15, 0.4, 0.55, 1] }
-                        }}
-                      />
-                    </React.Fragment>
-                  ))}
-                </g>
-              ))}
-            </g>
-          ))}
-        </svg>
-
-      <motion.div
-        className="relative w-28 h-28 md:w-32 md:h-32 lg:w-36 lg:h-36 bg-dark rounded-md flex items-center justify-center shadow-lg overflow-hidden cursor-pointer"
-        whileHover={{ scale: 1.05, rotate: 2 }}
-        whileTap={{ scale: 0.97 }}
-        onHoverStart={() => setIsHovered(true)}
-        onHoverEnd={() => setIsHovered(false)}
-        onTap={triggerLightning}
-      >
-        {/* Brief discharge flash across the chip on click */}
-        {bursts.length > 0 && (
-          <motion.div
-            key={bursts[bursts.length - 1].id}
-            className="absolute inset-0 bg-sky-100 pointer-events-none z-20"
-            initial={{ opacity: 0.45 }}
-            animate={{ opacity: 0 }}
-            transition={{ duration: 0.35, ease: "easeOut" }}
-          />
-        )}
-
-        {/* CPU Corner Notch */}
-        <div className="absolute top-0 left-0 w-4 h-4 bg-tertiary rounded-br-md" />
-        
-        {/* Subtle Circuit Pattern */}
-        <div className="absolute inset-0 opacity-10 pointer-events-none">
-          <div className="absolute top-1/4 left-0 w-full h-[1px] bg-secondary/70"></div>
-          <div className="absolute top-2/4 left-0 w-full h-[1px] bg-secondary/70"></div>
-          <div className="absolute top-3/4 left-0 w-full h-[1px] bg-secondary/70"></div>
-          <div className="absolute left-1/4 top-0 h-full w-[1px] bg-secondary/70"></div>
-          <div className="absolute left-2/4 top-0 h-full w-[1px] bg-secondary/70"></div>
-          <div className="absolute left-3/4 top-0 h-full w-[1px] bg-secondary/70"></div>
-        </div>
-        
-        {/* CPU Pins mapped to the Left Side */}
-        <div className="absolute -left-1 top-1/2 transform -translate-y-1/2 h-3/4 flex flex-col justify-around">
-          {[...Array(8)].map((_, i) => (
-            <motion.div 
-              key={`pin-left-${i}`}
-              className="w-2 h-1 rounded-sm shadow-sm"
-              style={{ backgroundColor: isHovered ? "#38bdf8" : "#71717a" }}
-              initial={{ x: 0 }}
-              animate={{ 
-                x: [-1, 0, -1],
-                backgroundColor: isHovered 
-                  ? ["#71717a", "#38bdf8", "#818cf8", "#71717a"]
-                  : "#71717a"
-              }}
-              transition={{ 
-                x: {
-                  duration: 3, 
-                  repeat: Infinity, 
-                  repeatType: "reverse", 
-                  delay: i * 0.2 % 1.5
-                },
-                backgroundColor: {
-                  duration: 0.8,
-                  repeat: isHovered ? Infinity : 0,
-                  repeatType: "reverse"
-                }
-              }}
-            />
-          ))}
-        </div>
-        
-        {/* CPU Pins mapped to the Right Side */}
-        <div className="absolute -right-1 top-1/2 transform -translate-y-1/2 h-3/4 flex flex-col justify-around">
-          {[...Array(8)].map((_, i) => (
-            <motion.div 
-              key={`pin-right-${i}`}
-              className="w-2 h-1 rounded-sm shadow-sm"
-              style={{ backgroundColor: isHovered ? "#38bdf8" : "#71717a" }}
-              initial={{ x: 0 }}
-              animate={{ 
-                x: [1, 0, 1],
-                backgroundColor: isHovered 
-                  ? ["#71717a", "#38bdf8", "#818cf8", "#71717a"]
-                  : "#71717a"
-              }}
-              transition={{ 
-                x: {
-                  duration: 3, 
-                  repeat: Infinity, 
-                  repeatType: "reverse", 
-                  delay: i * 0.15 % 1.2
-                },
-                backgroundColor: {
-                  duration: 0.8,
-                  repeat: isHovered ? Infinity : 0,
-                  repeatType: "reverse",
-                  delay: i * 0.05
-                }
-              }}
-            />
-          ))}
-        </div>
-        
-        {/* CPU Pins mapped to the Top Side */}
-        <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-3/4 flex justify-around">
-          {[...Array(6)].map((_, i) => (
-            <motion.div 
-              key={`pin-top-${i}`}
-              className="h-2 w-1 rounded-sm shadow-sm"
-              style={{ backgroundColor: isHovered ? "#38bdf8" : "#71717a" }}
-              initial={{ y: 0 }}
-              animate={{ 
-                y: [-1, 0, -1],
-                backgroundColor: isHovered 
-                  ? ["#71717a", "#38bdf8", "#818cf8", "#71717a"]
-                  : "#71717a"
-              }}
-              transition={{ 
-                y: {
-                  duration: 2.5, 
-                  repeat: Infinity, 
-                  repeatType: "reverse", 
-                  delay: i * 0.25 % 1.8
-                },
-                backgroundColor: {
-                  duration: 0.8,
-                  repeat: isHovered ? Infinity : 0,
-                  repeatType: "reverse",
-                  delay: i * 0.1
-                }
-              }}
-            />
-          ))}
-        </div>
-        
-        {/* CPU Pins mapped to the Bottom Side */}
-        <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-3/4 flex justify-around">
-          {[...Array(6)].map((_, i) => (
-            <motion.div 
-              key={`pin-bottom-${i}`}
-              className="h-2 w-1 rounded-sm shadow-sm"
-              style={{ backgroundColor: isHovered ? "#38bdf8" : "#71717a" }}
-              initial={{ y: 0 }}
-              animate={{ 
-                y: [1, 0, 1],
-                backgroundColor: isHovered 
-                  ? ["#71717a", "#38bdf8", "#818cf8", "#71717a"]
-                  : "#71717a"
-              }}
-              transition={{ 
-                y: {
-                  duration: 2.8, 
-                  repeat: Infinity, 
-                  repeatType: "reverse", 
-                  delay: i * 0.18 % 1.4
-                },
-                backgroundColor: {
-                  duration: 0.8,
-                  repeat: isHovered ? Infinity : 0,
-                  repeatType: "reverse",
-                  delay: i * 0.15
-                }
-              }}
-            />
-          ))}
-        </div>
-        
-        {/* CPU Label */}
-        <div className="absolute top-2 right-2 text-[8px] text-secondary/80 font-mono">
-          RO-CPU 9000
-        </div>
-        
-        {/* CPU Core */}
-        <motion.div 
-          className="w-20 h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 bg-secondary/20 rounded-sm grid grid-cols-4 grid-rows-4 gap-0.5 p-1"
-        >
-          {coreCells.map((cell, i) => (
-            <motion.div
-              key={i}
-              className="bg-secondary/80"
-              initial={{ opacity: 0.3 }}
-              animate={{ opacity: [0.3, cell.peak] }}
-              transition={{
-                duration: isHovered ? cell.flashDuration * 0.6 : cell.flashDuration,
-                repeat: Infinity,
-                repeatType: "reverse",
-                repeatDelay: isHovered ? cell.restDuration * 0.25 : cell.restDuration,
-                delay: cell.initialDelay,
-                ease: "easeInOut"
-              }}
-            />
-          ))}
-        </motion.div>
-      </motion.div>
-
-        {/* Terminal-style hint that the chip is clickable; retires after the first click */}
-        <AnimatePresence>
-        {!hasClicked && !prefersReducedMotion && (
-          <motion.div
-            key="overclock-hint"
-            className="absolute left-1/2 -translate-x-1/2 top-full mt-4 whitespace-nowrap font-mono text-[10px] md:text-xs text-secondary/70 pointer-events-none select-none"
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, transition: { duration: 0.3 } }}
-            transition={{ delay: 2.5, duration: 0.6 }}
-            aria-hidden="true"
-          >
-            {'> overclock'}
-            <motion.span
-              animate={{ opacity: [1, 1, 0, 0] }}
-              transition={{ duration: 1, repeat: Infinity, times: [0, 0.5, 0.5, 1] }}
-            >
-              _
-            </motion.span>
-          </motion.div>
-        )}
-        </AnimatePresence>
-      </div>
-    );
-  };
-
   return (
     <div className="h-64 md:h-96 lg:h-[30rem] w-full flex items-center justify-center">
       <motion.div 
@@ -423,16 +477,14 @@ const AnimatedTechScene = () => {
           />
           <motion.div 
             className="absolute w-48 h-48 md:w-56 md:h-56 lg:w-64 lg:h-64 rounded-full border-2 border-dashed border-primary/40"
-            variants={rotateVariants}
-            initial="initial"
-            animate="animate"
-            style={{ animationDirection: "reverse" }}
+            initial={{ rotate: 0 }}
+            animate={{ rotate: -360 }}
+            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
           />
           <motion.div 
             className="absolute w-32 h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 rounded-full border-2 border-dashed border-dark/30"
-            variants={rotateVariants}
-            initial="initial"
-            animate="animate"
+            initial={{ rotate: 0 }}
+            animate={{ rotate: 360 }}
             transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
           />
 
