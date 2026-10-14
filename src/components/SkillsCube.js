@@ -97,7 +97,7 @@ const SkillsCube = () => {
 
   return (
     <div className="relative h-[420px] md:h-[480px] w-full rounded-lg overflow-hidden bg-black/20">
-      <Canvas camera={{ position: [0, 0.5, 8], fov: 45 }} dpr={[1, 2]}>
+      <Canvas camera={{ position: [0, 0.65, 10.5], fov: 45 }} dpr={[1, 2]}>
         <ambientLight intensity={0.7} />
         <pointLight position={[5, 5, 5]} intensity={0.8} color="#FFD700" />
         <group>
