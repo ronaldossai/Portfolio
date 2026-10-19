@@ -6,6 +6,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import SocialLinks from './components/SocialLinks';
 import EmailLink from './components/EmailLink';
+import ChatWidget from './components/ChatWidget';
 
 // Pages
 import Home from './pages/Home';
@@ -29,6 +30,7 @@ function App() {
       </main>
       <SocialLinks />
       <EmailLink />
+      <ChatWidget />
       <Footer />
     </div>
   );
