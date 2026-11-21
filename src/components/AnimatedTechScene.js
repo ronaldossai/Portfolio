@@ -106,7 +106,7 @@ const BoardShape = ({ id, position, shape, float, registry }) => {
   const body = (
     <motion.div
       ref={bodyRef}
-      className={`relative ${shape} transition-shadow duration-200 hover:shadow-[0_0_14px_rgba(255,215,0,0.45)]`}
+      className={`relative ${shape} transition-shadow duration-200 hover:shadow-[0_0_14px_rgb(var(--accent)/0.45)]`}
       whileHover={{ y: -3, scale: 1.1 }}
     >
       {/* Gold flash when struck */}
@@ -114,7 +114,7 @@ const BoardShape = ({ id, position, shape, float, registry }) => {
         <motion.div
           key={zapCount}
           className="absolute inset-0 rounded-[inherit] bg-secondary pointer-events-none"
-          style={{ boxShadow: '0 0 18px rgba(255, 215, 0, 0.8)' }}
+          style={{ boxShadow: '0 0 18px rgb(var(--accent) / 0.8)' }}
           initial={{ opacity: 0.95 }}
           animate={{ opacity: 0 }}
           transition={{ duration: 0.5, ease: "easeOut" }}

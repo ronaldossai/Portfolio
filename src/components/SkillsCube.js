@@ -6,6 +6,7 @@ import {
   SiExpress, SiDjango, SiGraphql, SiThreedotjs, SiTailwindcss, SiCplusplus,
   SiKotlin, SiPhp, SiHtml5, SiCss3, SiUnity, SiVercel, SiBlender, SiLinux
 } from 'react-icons/si';
+import { useAccent } from '../theme/AccentContext';
 
 const TECHS = [
   { name: 'Python', Icon: SiPython, color: '#3776AB' },
@@ -53,11 +54,11 @@ function cubeSurfacePoints(count, halfSize) {
   return points;
 }
 
-function WireframeCube() {
+function WireframeCube({ color }) {
   return (
     <mesh rotation={[Math.PI / 8, Math.PI / 6, 0]}>
       <boxGeometry args={[CUBE_SIZE, CUBE_SIZE, CUBE_SIZE, 4, 4, 4]} />
-      <meshBasicMaterial color="#FFD700" wireframe transparent opacity={0.25} />
+      <meshBasicMaterial color={color} wireframe transparent opacity={0.25} />
     </mesh>
   );
 }
@@ -90,6 +91,7 @@ function TechIcon({ name, Icon, color, position, hovered, onHover }) {
 
 const SkillsCube = () => {
   const [hovered, setHovered] = useState(null);
+  const { hex: accent } = useAccent();
   const positions = useMemo(
     () => cubeSurfacePoints(TECHS.length, CUBE_SIZE / 2 + SURFACE_OFFSET),
     []
@@ -99,9 +101,9 @@ const SkillsCube = () => {
     <div className="relative h-[420px] md:h-[480px] w-full rounded-lg overflow-hidden bg-black/20">
       <Canvas camera={{ position: [0, 0.65, 10.5], fov: 45 }} dpr={[1, 2]}>
         <ambientLight intensity={0.7} />
-        <pointLight position={[5, 5, 5]} intensity={0.8} color="#FFD700" />
+        <pointLight position={[5, 5, 5]} intensity={0.8} color={accent} />
         <group>
-          <WireframeCube />
+          <WireframeCube color={accent} />
           {TECHS.map((tech, i) => (
             <TechIcon
               key={tech.name}

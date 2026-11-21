@@ -11,6 +11,18 @@
     <meta name="theme-color" content="#000000" />
     <link rel="canonical" href="https://ronaldossai.xyz/" />
 
+    <!-- Apply a saved accent colour before React loads (avoids a yellow flash). See src/theme. -->
+    <script>
+      try {
+        var a = JSON.parse(localStorage.getItem('accent'));
+        if (a && a.rgb && a.dark) {
+          document.documentElement.style.setProperty('--accent', a.rgb.join(' '));
+          document.documentElement.style.setProperty('--accent-dark', a.dark.join(' '));
+          if (a.on) document.documentElement.style.setProperty('--on-accent', a.on.join(' '));
+        }
+      } catch (e) {}
+    </script>
+
     <!-- Icons: SVG first, PNG fallback -->
     <link rel="icon" type="image/svg+xml" href="%PUBLIC_URL%/favicon.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/favicon-32.png" />

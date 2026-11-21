@@ -27,12 +27,12 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #FFD700;
+  background: rgb(var(--accent));
   border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #D4AF37;
+  background: rgb(var(--accent-dark));
 }
 
 /* Section styling */
@@ -52,7 +52,7 @@ a.hover-underline::after {
   height: 2px;
   bottom: -4px;
   left: 0;
-  background-color: #FFD700;
+  background-color: rgb(var(--accent));
   transition: width 0.3s ease;
 }
 

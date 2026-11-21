@@ -162,7 +162,7 @@ const Contact = () => {
                   disabled={loading}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full py-3 px-6 bg-secondary text-primary font-medium rounded hover:bg-secondary/90 transition-all duration-300 disabled:opacity-70"
+                  className="w-full py-3 px-6 bg-secondary text-on-accent font-medium rounded hover:bg-secondary/90 transition-all duration-300 disabled:opacity-70"
                 >
                   {loading ? 'Sending...' : 'Send Message'}
                 </motion.button>

@@ -155,7 +155,7 @@ const ChatWidget = () => {
                   <div
                     className={`max-w-[85%] px-3 py-2 rounded-lg text-sm whitespace-pre-wrap break-words ${
                       m.role === 'user'
-                        ? 'bg-secondary text-primary'
+                        ? 'bg-secondary text-on-accent'
                         : m.error
                         ? 'bg-tertiary text-red-400'
                         : 'bg-tertiary text-light'
@@ -200,7 +200,7 @@ const ChatWidget = () => {
               <button
                 type="submit"
                 disabled={loading || !input.trim()}
-                className="bg-secondary text-primary rounded px-3 py-2 text-sm font-semibold disabled:opacity-40 hover:bg-secondary/90 transition-colors"
+                className="bg-secondary text-on-accent rounded px-3 py-2 text-sm font-semibold disabled:opacity-40 hover:bg-secondary/90 transition-colors"
               >
                 Send
               </button>
@@ -213,7 +213,7 @@ const ChatWidget = () => {
         onClick={() => setOpen((o) => !o)}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className="flex items-center gap-2 bg-secondary text-primary font-semibold rounded-full shadow-lg px-4 py-3"
+        className="flex items-center gap-2 bg-secondary text-on-accent font-semibold rounded-full shadow-lg px-4 py-3"
         aria-expanded={open}
         aria-label={open ? 'Close chat' : 'Open chat with AI assistant'}
       >

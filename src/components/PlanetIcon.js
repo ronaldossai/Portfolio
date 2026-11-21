@@ -11,7 +11,7 @@ const PlanetIcon = ({ size = 72, className = '' }) => (
     <path
       d="M 4 50 A 46 16 0 0 1 96 50"
       fill="none"
-      stroke="#FFD700"
+      style={{ stroke: 'rgb(var(--accent))' }}
       strokeWidth="3"
       strokeLinecap="round"
       opacity="0.5"
@@ -31,7 +31,7 @@ const PlanetIcon = ({ size = 72, className = '' }) => (
     <path
       d="M 96 50 A 46 16 0 0 1 4 50"
       fill="none"
-      stroke="#FFD700"
+      style={{ stroke: 'rgb(var(--accent))' }}
       strokeWidth="3"
       strokeLinecap="round"
       opacity="0.95"

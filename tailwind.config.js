@@ -7,7 +7,8 @@ module.exports = {
     extend: {
       colors: {
         primary: "#000000", // Changed from blue to black
-        secondary: "#FFD700", // Changed from teal to gold/yellow
+        secondary: "rgb(var(--accent) / <alpha-value>)", // theme accent, default #FFD700 (see src/theme)
+        "on-accent": "rgb(var(--on-accent) / <alpha-value>)", // black or white text on the accent
         tertiary: "#222222", // Adjusted to a darker gray for contrast with black
         light: "#F5F5F5", // Kept light for contrast
         dark: "#777777", // Adjusted to gray for better compatibility

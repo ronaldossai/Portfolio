@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import AccentPicker from './AccentPicker';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -34,10 +35,13 @@ const Navbar = () => {
       }`}
     >
       <div className="max-w-6xl mx-auto px-4 md:px-8 lg:px-16 flex justify-between items-center">
-        {/* Logo */}
-        <a href="#home" className="text-secondary font-bold text-2xl font-heading">
-          RONALD OSSAI<span className="text-light"></span>
-        </a>
+        {/* Logo + accent picker */}
+        <div className="flex items-center gap-3">
+          <AccentPicker />
+          <a href="#home" className="text-secondary font-bold text-2xl font-heading">
+            RONALD OSSAI<span className="text-light"></span>
+          </a>
+        </div>
 
         {/* Desktop Navigation */}
         <nav className="hidden md:block">

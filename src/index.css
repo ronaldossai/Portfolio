@@ -8,6 +8,12 @@
   scroll-behavior: smooth;
 }
 
+:root {
+  --accent: 255 215 0;       /* #FFD700, overridden by the accent picker */
+  --accent-dark: 212 175 55; /* #D4AF37 */
+  --on-accent: 0 0 0;        /* text on accent backgrounds (switches to white on deep colours) */
+}
+
 body {
   margin: 0;
   font-family: 'Inter', sans-serif;
@@ -30,10 +36,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #FFD700;
+  background: rgb(var(--accent));
   border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #D4AF37;
+  background: rgb(var(--accent-dark));
 }

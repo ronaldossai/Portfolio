@@ -147,7 +147,7 @@ const Interests = () => {
             rel="noopener noreferrer"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="inline-block bg-secondary text-primary px-8 py-3 rounded-md font-semibold 
+            className="inline-block bg-secondary text-on-accent px-8 py-3 rounded-md font-semibold 
                      hover:bg-secondary/90 transition-all duration-300 shadow-md hover:shadow-lg"
           >
             Visit My SoundCloud
