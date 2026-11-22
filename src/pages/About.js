@@ -20,7 +20,7 @@ const About = () => {
           <div className="grid md:grid-cols-5 gap-8 mt-12">
             <div className="md:col-span-3">
               <p className="text-dark mb-4">
-                Hello! My name is Ronald Ossai and I enjoy creating things that live on Computers. 
+                Hello! My name is Ronald Ossai, I enjoy creating things that live on Computers. 
                 My interest in technology started at a very young age. I started learning how to code in 2015 when I decided to try making a 2d football game with 
                 python and pygame. It was nothing novel and it was terminal based but it was the catalyst to the life i currently call 
                 my reality.
