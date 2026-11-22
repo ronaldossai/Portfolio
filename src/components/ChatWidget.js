@@ -30,6 +30,22 @@ const GREETING = {
     : "Hi! This assistant is in preview. Pick a suggested question to see how it works.",
 };
 
+// Matches Tailwind's `sm` breakpoint: below 640px the chat goes fullscreen.
+const MOBILE_QUERY = '(max-width: 639px)';
+
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia(MOBILE_QUERY).matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(MOBILE_QUERY);
+    const onChange = (e) => setIsMobile(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return isMobile;
+};
+
 const ChatWidget = () => {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([GREETING]);
@@ -37,6 +53,9 @@ const ChatWidget = () => {
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
+  const pushedHistoryRef = useRef(false);
+  const isMobile = useIsMobile();
+  const fullscreen = open && isMobile;
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -44,9 +63,66 @@ const ChatWidget = () => {
     }
   }, [messages, open]);
 
+  // On desktop, focus the input. On mobile, don't: the keyboard would cover the suggestions.
   useEffect(() => {
-    if (open && inputRef.current) inputRef.current.focus();
-  }, [open]);
+    if (open && !isMobile && inputRef.current) inputRef.current.focus();
+  }, [open, isMobile]);
+
+  // Mobile: lock the page behind the fullscreen chat, then restore the exact scroll position on close.
+  // (position: fixed is the only lock iOS Safari reliably respects.)
+  useEffect(() => {
+    if (!fullscreen) return undefined;
+    const y = window.scrollY;
+    const body = document.body.style;
+    const prev = { position: body.position, top: body.top, left: body.left, right: body.right, width: body.width };
+    Object.assign(body, { position: 'fixed', top: `-${y}px`, left: '0', right: '0', width: '100%' });
+    return () => {
+      Object.assign(body, prev);
+      // Jump straight back instead of smooth-scrolling from the top (index.css sets smooth scrolling).
+      const html = document.documentElement.style;
+      const prevBehavior = html.scrollBehavior;
+      html.scrollBehavior = 'auto';
+      window.scrollTo(0, y);
+      html.scrollBehavior = prevBehavior;
+    };
+  }, [fullscreen]);
+
+  // Mobile: the back button/gesture closes the chat instead of leaving the site.
+  useEffect(() => {
+    const onPopState = () => {
+      if (pushedHistoryRef.current) {
+        pushedHistoryRef.current = false;
+        setOpen(false);
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  const openChat = () => {
+    if (isMobile) {
+      window.history.pushState({ chatOpen: true }, '');
+      pushedHistoryRef.current = true;
+    }
+    setOpen(true);
+  };
+
+  const closeChat = () => {
+    if (pushedHistoryRef.current) {
+      // Remove the entry we added so the back button behaves normally afterwards.
+      pushedHistoryRef.current = false;
+      window.history.back();
+    }
+    setOpen(false);
+  };
+
+  // Escape closes the chat
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => e.key === 'Escape' && closeChat();
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  });
 
   const send = async (text) => {
     const content = text.trim();
@@ -120,16 +196,22 @@ const ChatWidget = () => {
   const showSuggestions = messages.length === 1;
 
   return (
-    <div className="fixed bottom-6 right-4 md:right-8 lg:right-20 z-50 flex flex-col items-end">
+    <div className="fixed bottom-6 right-4 md:right-8 lg:right-20 z-[60] flex flex-col items-end">
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: 16, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.97 }}
-            transition={{ duration: 0.2 }}
-            className="mb-4 w-[calc(100vw-2rem)] sm:w-96 h-[32rem] max-h-[75vh] flex flex-col bg-primary border border-tertiary rounded-lg shadow-2xl overflow-hidden"
+            initial={isMobile ? { y: '100%' } : { opacity: 0, y: 16, scale: 0.97 }}
+            animate={isMobile ? { y: 0 } : { opacity: 1, y: 0, scale: 1 }}
+            exit={isMobile ? { y: '100%' } : { opacity: 0, y: 16, scale: 0.97 }}
+            transition={isMobile ? { type: 'tween', duration: 0.28, ease: [0.32, 0.72, 0, 1] } : { duration: 0.2 }}
+            className={
+              isMobile
+                ? // 100dvh tracks the real visible height as mobile browser bars and the keyboard come and go
+                  'fixed inset-0 h-[100dvh] w-full flex flex-col bg-primary overflow-hidden'
+                : 'mb-4 w-96 h-[32rem] max-h-[75vh] flex flex-col bg-primary border border-tertiary rounded-lg shadow-2xl overflow-hidden'
+            }
             role="dialog"
+            aria-modal={isMobile || undefined}
             aria-label="Chat with Ronald's AI assistant"
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-tertiary">
@@ -138,8 +220,8 @@ const ChatWidget = () => {
                 <p className="text-dark text-xs font-mono">{LIVE_AI ? 'Powered by Claude' : 'Preview'}</p>
               </div>
               <button
-                onClick={() => setOpen(false)}
-                className="text-dark hover:text-secondary transition-colors"
+                onClick={closeChat}
+                className="text-dark hover:text-secondary transition-colors p-2 -mr-2"
                 aria-label="Close chat"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -149,7 +231,7 @@ const ChatWidget = () => {
               </button>
             </div>
 
-            <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3" aria-live="polite">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 space-y-3" aria-live="polite">
               {messages.map((m, i) => (
                 <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div
@@ -194,7 +276,8 @@ const ChatWidget = () => {
                 onChange={(e) => setInput(e.target.value)}
                 maxLength={1000}
                 placeholder="Ask a question..."
-                className="flex-1 bg-tertiary text-light text-sm rounded px-3 py-2 placeholder-dark focus:outline-none focus:ring-1 focus:ring-secondary"
+                // 16px on mobile: iOS zooms the page into any input smaller than that
+                className="flex-1 bg-tertiary text-light text-base sm:text-sm rounded px-3 py-2 placeholder-dark focus:outline-none focus:ring-1 focus:ring-secondary"
                 aria-label="Your message"
               />
               <button
@@ -209,19 +292,22 @@ const ChatWidget = () => {
         )}
       </AnimatePresence>
 
-      <motion.button
-        onClick={() => setOpen((o) => !o)}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        className="flex items-center gap-2 bg-secondary text-on-accent font-semibold rounded-full shadow-lg px-4 py-3"
-        aria-expanded={open}
-        aria-label={open ? 'Close chat' : 'Open chat with AI assistant'}
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-        </svg>
-        <span className="text-sm">{open ? 'Close' : 'Ask AI'}</span>
-      </motion.button>
+      {/* On mobile the fullscreen chat has its own close button, so the launcher hides while open */}
+      {!fullscreen && (
+        <motion.button
+          onClick={() => (open ? closeChat() : openChat())}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="flex items-center gap-2 bg-secondary text-on-accent font-semibold rounded-full shadow-lg px-4 py-3"
+          aria-expanded={open}
+          aria-label={open ? 'Close chat' : 'Open chat with AI assistant'}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span className="text-sm">{open ? 'Close' : 'Ask AI'}</span>
+        </motion.button>
+      )}
     </div>
   );
 };
