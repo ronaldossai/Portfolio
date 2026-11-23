@@ -10,27 +10,62 @@ import {
   hueGradient,
 } from '../theme/accent';
 
-const HINT_KEY = 'accent-hint-seen';
+const HINT_KEY = 'accent-hint-seen'; // pulsing dot: until the picker is first opened
+const TIP_KEY = 'accent-tip-seen'; // intro tooltip: shown once per browser
+
+const TIP_DELAY_MS = 3500; // let the hero settle first
+const DEMO_MS = 1600; // chip colour sweep
+const TIP_MS = 9000; // callout auto-hides this long after the sweep ends
+const SCROLL_DISMISS_PX = 150; // small scroll nudges don't dismiss it
+
+// Colours the chip sweeps through in the intro demo, ending back on yellow.
+const DEMO_COLOURS = [
+  ...[150, 205, 262, 300, 355, 25].map((h) => `rgb(${accentFor({ h, l: 0.8 }).rgb.join(' ')})`),
+  'rgb(255 215 0)',
+];
+
+const readFlag = (key) => {
+  try {
+    return !!localStorage.getItem(key);
+  } catch {
+    return true; // storage blocked: don't nag
+  }
+};
+const setFlag = (key) => {
+  try {
+    localStorage.setItem(key, '1');
+  } catch {
+    /* ignore */
+  }
+};
 
 // RO chip (same shape as /public/logo.svg), filled with the live accent colour.
 // The letters use --on-accent so they stay readable on deep colours.
-const ChipIcon = ({ size = 30 }) => (
-  <svg viewBox="0 0 64 64" width={size} height={size} aria-hidden="true">
-    <g className="fill-secondary">
-      <rect x="21" y="4" width="4" height="7" rx="1" /><rect x="30" y="4" width="4" height="7" rx="1" /><rect x="39" y="4" width="4" height="7" rx="1" />
-      <rect x="21" y="53" width="4" height="7" rx="1" /><rect x="30" y="53" width="4" height="7" rx="1" /><rect x="39" y="53" width="4" height="7" rx="1" />
-      <rect x="4" y="21" width="7" height="4" rx="1" /><rect x="4" y="30" width="7" height="4" rx="1" /><rect x="4" y="39" width="7" height="4" rx="1" />
-      <rect x="53" y="21" width="7" height="4" rx="1" /><rect x="53" y="30" width="7" height="4" rx="1" /><rect x="53" y="39" width="7" height="4" rx="1" />
-      <rect x="12" y="12" width="40" height="40" rx="6" />
-    </g>
-    <path d="M12 18a6 6 0 0 1 6-6h4l-10 10z" className="fill-on-accent" opacity=".85" />
-    <g fill="none" className="stroke-on-accent" strokeWidth="3.6">
-      <path d="M19.5 43V22h5.5a5.25 5.25 0 0 1 0 10.5h-5.5" strokeLinejoin="round" />
-      <rect x="35.2" y="23.8" width="9.4" height="17.4" rx="4.8" />
-    </g>
-    <path d="M23.4 32.5h3.9l4 10.5h-3.9z" className="fill-on-accent" />
-  </svg>
-);
+// `demo` sweeps the body through a few colours without touching the site's accent.
+const ChipIcon = ({ size = 30, demo = false }) => {
+  // The demo group is keyed so it remounts as a plain <g> afterwards, dropping the inline fill.
+  const Body = demo ? motion.g : 'g';
+  const demoProps = demo
+    ? { animate: { fill: DEMO_COLOURS }, transition: { duration: DEMO_MS / 1000, ease: 'easeInOut' } }
+    : {};
+  return (
+    <svg viewBox="0 0 64 64" width={size} height={size} aria-hidden="true">
+      <Body key={demo ? 'demo' : 'static'} className="fill-secondary" {...demoProps}>
+        <rect x="21" y="4" width="4" height="7" rx="1" /><rect x="30" y="4" width="4" height="7" rx="1" /><rect x="39" y="4" width="4" height="7" rx="1" />
+        <rect x="21" y="53" width="4" height="7" rx="1" /><rect x="30" y="53" width="4" height="7" rx="1" /><rect x="39" y="53" width="4" height="7" rx="1" />
+        <rect x="4" y="21" width="7" height="4" rx="1" /><rect x="4" y="30" width="7" height="4" rx="1" /><rect x="4" y="39" width="7" height="4" rx="1" />
+        <rect x="53" y="21" width="7" height="4" rx="1" /><rect x="53" y="30" width="7" height="4" rx="1" /><rect x="53" y="39" width="7" height="4" rx="1" />
+        <rect x="12" y="12" width="40" height="40" rx="6" />
+      </Body>
+      <path d="M12 18a6 6 0 0 1 6-6h4l-10 10z" className="fill-on-accent" opacity=".85" />
+      <g fill="none" className="stroke-on-accent" strokeWidth="3.6">
+        <path d="M19.5 43V22h5.5a5.25 5.25 0 0 1 0 10.5h-5.5" strokeLinejoin="round" />
+        <rect x="35.2" y="23.8" width="9.4" height="17.4" rx="4.8" />
+      </g>
+      <path d="M23.4 32.5h3.9l4 10.5h-3.9z" className="fill-on-accent" />
+    </svg>
+  );
+};
 
 // Horizontal slider: drag, click, or arrow keys. `t` is 0..1.
 const Strip = ({ label, valueText, t, onChange, background, step = 0.015 }) => {
@@ -89,25 +124,60 @@ const LRANGE = MAX_LIGHTNESS - MIN_LIGHTNESS;
 const AccentPicker = () => {
   const { value, hue, lightness, setValue, setHue, setLightness, reset } = useAccent();
   const [open, setOpen] = useState(false);
-  const [showHint, setShowHint] = useState(() => {
-    try {
-      return !localStorage.getItem(HINT_KEY);
-    } catch {
-      return false;
-    }
-  });
+  const [showHint, setShowHint] = useState(() => !readFlag(HINT_KEY));
+  // Intro: 'wait' -> 'demo' (chip colour sweep) -> 'tip' (tooltip) -> 'done'
+  const [intro, setIntro] = useState(() => (readFlag(TIP_KEY) || readFlag(HINT_KEY) ? 'done' : 'wait'));
+  const introVisible = intro === 'demo' || intro === 'tip';
   const rootRef = useRef(null);
   const buttonRef = useRef(null);
 
+  // Intro timeline
+  useEffect(() => {
+    if (intro === 'done') return undefined;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let t;
+    if (intro === 'wait') {
+      t = setTimeout(() => {
+        setFlag(TIP_KEY); // counts as seen once it starts
+        setIntro(reducedMotion ? 'tip' : 'demo');
+      }, TIP_DELAY_MS);
+    } else if (intro === 'demo') {
+      t = setTimeout(() => setIntro('tip'), DEMO_MS);
+    } else if (intro === 'tip') {
+      t = setTimeout(() => setIntro('done'), TIP_MS);
+    }
+    return () => clearTimeout(t);
+  }, [intro]);
+
+  // Any interaction during the demo/tooltip dismisses it (except clicks on the chip/tooltip,
+  // which open the picker instead)
+  useEffect(() => {
+    if (intro !== 'demo' && intro !== 'tip') return undefined;
+    const end = () => setIntro('done');
+    const startY = window.scrollY;
+    const onScroll = () => {
+      if (Math.abs(window.scrollY - startY) > SCROLL_DISMISS_PX) end();
+    };
+    const onPointerDown = (e) => {
+      if (!rootRef.current?.contains(e.target)) end();
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('keydown', end);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('keydown', end);
+    };
+  }, [intro]);
+
   const toggle = () => {
     setOpen((o) => !o);
+    setIntro('done');
+    setFlag(TIP_KEY);
     if (showHint) {
       setShowHint(false);
-      try {
-        localStorage.setItem(HINT_KEY, '1');
-      } catch {
-        /* ignore */
-      }
+      setFlag(HINT_KEY);
     }
   };
 
@@ -147,7 +217,23 @@ const AccentPicker = () => {
         title="Change accent colour"
         className="relative rounded-md p-0.5 transition-transform hover:scale-110 hover:rotate-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
       >
-        <ChipIcon />
+        <motion.span
+          className="block"
+          animate={intro === 'demo' ? { scale: [1, 1.18, 1.18, 1], rotate: [0, -8, 8, 0] } : { scale: 1, rotate: 0 }}
+          transition={{ duration: DEMO_MS / 1000, ease: 'easeInOut' }}
+        >
+          <ChipIcon demo={intro === 'demo'} />
+        </motion.span>
+        {/* Glowing halo while the intro callout is up */}
+        {introVisible && !open && (
+          <motion.span
+            aria-hidden="true"
+            className="pointer-events-none absolute -inset-1 rounded-lg border-2 border-secondary"
+            initial={{ scale: 1, opacity: 0.8 }}
+            animate={{ scale: 1.6, opacity: 0 }}
+            transition={{ duration: 1.3, repeat: Infinity, ease: 'easeOut' }}
+          />
+        )}
         {showHint && (
           <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5" aria-hidden="true">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-secondary opacity-75" />
@@ -155,6 +241,54 @@ const AccentPicker = () => {
           </span>
         )}
       </button>
+
+      {/* One-time intro callout: appears with the chip's colour sweep */}
+      <AnimatePresence>
+        {introVisible && !open && (
+          <motion.div
+            role="status"
+            initial={{ opacity: 0, y: -10, scale: 0.92 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.96 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 24 }}
+            style={{ transformOrigin: '17px 0px' }}
+            className="absolute left-0 top-full z-10 mt-4"
+          >
+            <motion.div
+              animate={{ y: [0, -4, 0] }}
+              transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+              className="relative w-[270px] max-w-[calc(100vw-2rem)]"
+            >
+              {/* arrow pointing at the chip */}
+              <span className="absolute -top-[7px] left-[11px] h-3.5 w-3.5 rotate-45 border-l-2 border-t-2 border-secondary bg-black" />
+              <div className="relative rounded-xl border-2 border-secondary bg-black p-4 shadow-[0_0_32px_rgb(var(--accent)/0.4)]">
+                <button
+                  type="button"
+                  onClick={() => setIntro('done')}
+                  aria-label="Dismiss"
+                  className="absolute right-2 top-2 rounded p-1 text-dark transition-colors hover:text-light"
+                >
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M18 6 6 18M6 6l12 12" />
+                  </svg>
+                </button>
+                <p className="font-heading text-lg font-bold text-light">Make it yours</p>
+                <p className="mt-1 pr-4 text-sm leading-snug text-light/70">
+                  Pick any accent colour for this site. Hit the chip any time to change it.
+                </p>
+                <div className="mt-3 h-2 rounded-full" style={{ background: hueGradient(0.8) }} aria-hidden="true" />
+                <button
+                  type="button"
+                  onClick={toggle}
+                  className="mt-4 w-full rounded-md bg-secondary py-2 text-sm font-semibold text-on-accent transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  Try it
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {open && (
