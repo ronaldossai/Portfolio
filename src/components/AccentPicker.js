@@ -121,13 +121,21 @@ const Strip = ({ label, valueText, t, onChange, background, step = 0.015 }) => {
 
 const LRANGE = MAX_LIGHTNESS - MIN_LIGHTNESS;
 
-const AccentPicker = () => {
+const AccentPicker = ({ menuOpen = false }) => {
   const { value, hue, lightness, setValue, setHue, setLightness, reset } = useAccent();
   const [open, setOpen] = useState(false);
   const [showHint, setShowHint] = useState(() => !readFlag(HINT_KEY));
   // Intro: 'wait' -> 'demo' (chip colour sweep) -> 'tip' (tooltip) -> 'done'
   const [intro, setIntro] = useState(() => (readFlag(TIP_KEY) || readFlag(HINT_KEY) ? 'done' : 'wait'));
   const introVisible = intro === 'demo' || intro === 'tip';
+
+  // The dashed arrow + label only shows at the top of the page, so it never clutters reading.
+  const [atTop, setAtTop] = useState(() => window.scrollY < 50);
+  useEffect(() => {
+    const onScroll = () => setAtTop(window.scrollY < 50);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
   const rootRef = useRef(null);
   const buttonRef = useRef(null);
 
@@ -215,7 +223,7 @@ const AccentPicker = () => {
         aria-expanded={open}
         aria-haspopup="dialog"
         title="Change accent colour"
-        className="relative rounded-md p-0.5 transition-transform hover:scale-110 hover:rotate-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+        className="relative rounded-md p-0.5 before:absolute before:-inset-[5px] before:content-[''] transition-transform hover:scale-110 hover:rotate-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
       >
         <motion.span
           className="block"
@@ -234,13 +242,44 @@ const AccentPicker = () => {
             transition={{ duration: 1.3, repeat: Infinity, ease: 'easeOut' }}
           />
         )}
-        {showHint && (
-          <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5" aria-hidden="true">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-secondary opacity-75" />
-            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-secondary" />
-          </span>
-        )}
+        {/* Permanent cue: slowly rotating dashed ring around the chip */}
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 48 48"
+          className="pointer-events-none absolute -inset-[7px] h-[calc(100%+14px)] w-[calc(100%+14px)] animate-[spin_12s_linear_infinite] motion-reduce:animate-none"
+        >
+          <circle cx="24" cy="24" r="22.5" fill="none" className="stroke-secondary" strokeWidth="1.5" strokeDasharray="4 4" opacity="0.75" />
+        </svg>
       </button>
+
+      {/* Permanent cue at the top of the page: dashed arrow + label pointing at the chip */}
+      <AnimatePresence>
+        {atTop && !open && !introVisible && !menuOpen && (
+          <motion.button
+            type="button"
+            onClick={toggle}
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.25 }}
+            className="group absolute left-[18px] top-full mt-1 flex items-start"
+          >
+            <motion.svg
+              aria-hidden="true"
+              viewBox="0 0 44 36"
+              className="h-6 w-[30px] shrink-0 overflow-visible md:h-9 md:w-11"
+              animate={{ y: [0, -3, 0] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <path d="M40 30 C 18 31, 6 22, 5 5" fill="none" className="stroke-secondary" strokeWidth="1.75" strokeDasharray="4 3.5" strokeLinecap="round" />
+              <path d="M0.5 10 L5 3.5 L10 9.5" fill="none" className="stroke-secondary" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+            </motion.svg>
+            <span className="mt-[13px] ml-1 whitespace-nowrap md:mt-[22px] font-mono text-xs text-secondary underline decoration-dashed decoration-secondary/50 underline-offset-4 transition-colors group-hover:text-light">
+              pick a colour
+            </span>
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* One-time intro callout: appears with the chip's colour sweep */}
       <AnimatePresence>
