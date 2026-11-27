@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAccent } from '../theme/AccentContext';
+import PrismBench from './PrismBench';
 import {
   MAX_LIGHTNESS,
   MIN_LIGHTNESS,
@@ -358,16 +359,9 @@ const AccentPicker = ({ menuOpen = false }) => {
             </div>
 
             <div className="space-y-3">
+              <PrismBench hue={hue} lightness={lightness} onHue={setHue} />
               <Strip
-                label="Hue"
-                valueText={`Hue ${Math.round(hue)}`}
-                t={hue / 359}
-                onChange={(t) => setHue(Math.round(t * 359))}
-                background={hueGradient(lightness)}
-                step={5 / 359}
-              />
-              <Strip
-                label="Depth"
+                label="Lamp"
                 valueText={`${Math.round(depthT * 100)}% bright`}
                 t={depthT}
                 onChange={(t) => setLightness(Math.round((MIN_LIGHTNESS + t * LRANGE) * 1000) / 1000)}
