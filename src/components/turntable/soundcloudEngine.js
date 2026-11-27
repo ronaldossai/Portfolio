@@ -4,6 +4,8 @@
 // its speed or touch the sound. It plays at normal speed while the needle is down and the
 // platter is turning at a steady speed, and pauses otherwise (record held, motor stopped).
 
+import { soundcloudPeaks } from './waveform';
+
 const API_SRC = 'https://w.soundcloud.com/player/api.js';
 let apiPromise = null;
 
@@ -25,10 +27,26 @@ function loadApi() {
   return apiPromise;
 }
 
-export const soundcloudEmbedUrl = (trackUrl, accentHex) =>
-  `https://w.soundcloud.com/player/?url=${encodeURIComponent(trackUrl)}` +
-  `&color=${encodeURIComponent(accentHex)}&auto_play=false&hide_related=true&show_comments=false` +
-  `&show_user=true&show_reposts=false&show_teaser=false&visual=false`;
+const EMBED_OPTIONS = {
+  auto_play: false,
+  hide_related: true,
+  show_comments: false,
+  show_user: true,
+  show_reposts: false,
+  show_teaser: false,
+  visual: false,
+};
+
+// The player's colour is fixed: it can only be set when the player loads, so following the
+// accent would mean reloading it (and a gap in the sound) on every change. Light grey, not
+// pure white: the player draws its play icon in white on this colour.
+const PLAYER_COLOR = '#cccccc';
+
+export const soundcloudEmbedUrl = (trackUrl) =>
+  `https://w.soundcloud.com/player/?url=${encodeURIComponent(trackUrl)}&color=${encodeURIComponent(PLAYER_COLOR)}&` +
+  Object.entries(EMBED_OPTIONS)
+    .map(([k, v]) => `${k}=${v}`)
+    .join('&');
 
 // Rate band (relative to 33⅓) in which the embed plays. Below it the platter is still spinning
 // up, slowing down or being held. 45 rpm plays at normal speed too: the embed can't go faster.
@@ -76,6 +94,7 @@ export async function createSoundcloudEngine(iframe, { onEnded, onExternalPlay, 
     kind: 'soundcloud',
     canBend: false,
     duration,
+    peaks: () => new Promise((resolve) => widget.getCurrentSound((sound) => resolve(sound?.waveform_url))).then(soundcloudPeaks),
     position: () => pos,
     seek(seconds) {
       pos = seconds;

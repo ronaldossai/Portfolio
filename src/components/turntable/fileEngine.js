@@ -4,6 +4,8 @@
 // direction can change every frame (scratching, slowing the record with a finger, the motor
 // winding down). Rate 1 = normal speed. Nothing is uploaded: the file is decoded in the browser.
 
+import { peaksFromBuffer } from './waveform';
+
 const PROCESSOR = `
 class TurntableProcessor extends AudioWorkletProcessor {
   constructor() {
@@ -97,6 +99,7 @@ export async function createFileEngine(file, { onEnded } = {}) {
     kind: 'file',
     canBend: true, // speed and pitch follow the platter
     duration: audio.duration,
+    peaks: async () => peaksFromBuffer(audio),
     position: () => pos,
     seek(seconds) {
       pos = seconds;

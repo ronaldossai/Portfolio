@@ -3,6 +3,7 @@ import { useAccent } from '../../theme/AccentContext';
 import { createFileEngine, fileAudioSupported } from './fileEngine';
 import { createSoundcloudEngine, soundcloudEmbedUrl } from './soundcloudEngine';
 import { loadImage, readTags, soundcloudArt } from './artwork';
+import { drawWaveform } from './waveform';
 
 // ---------------------------------------------------------------------------------------------
 // A basic turntable with real rotational physics.
@@ -85,10 +86,11 @@ function distToSegment(p, a, b) {
 }
 
 const Turntable = ({ tracks, soundcloudProfile }) => {
-  const { rgb, hex } = useAccent();
+  const { rgb } = useAccent();
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
   const scFrameRef = useRef(null);
+  const stripRef = useRef(null);
 
   // UI state (re-renders); the physics lives in `sim` and never triggers renders
   const [record, setRecord] = useState(null); // { kind: 'file'|'soundcloud', title, url? }
@@ -114,6 +116,10 @@ const Turntable = ({ tracks, soundcloudProfile }) => {
     title: '',
     art: null, // cover image printed on the label
     artUrl: null, // object URL to revoke for local covers
+    peaks: null, // waveform for the strip, 0..1 per bin
+    peaksAt: 0, // when it arrived, for the rise-in
+    stripHover: null, // pointer position over the strip, 0..1
+    stripSeek: null, // where the strip is being dragged to, 0..1
   });
   const loadToken = useRef(0);
 
@@ -151,6 +157,7 @@ const Turntable = ({ tracks, soundcloudProfile }) => {
     s.art = null;
     if (s.artUrl) URL.revokeObjectURL(s.artUrl);
     s.artUrl = null;
+    s.peaks = null;
     liftNeedle('returning');
     setMotorOn(false);
   }, [liftNeedle, setMotorOn]);
@@ -160,6 +167,19 @@ const Turntable = ({ tracks, soundcloudProfile }) => {
     liftNeedle('returning');
     setMotorOn(false);
   }, [liftNeedle, setMotorOn]);
+
+  // Waveform for the strip; the deck works without it, so failures are ignored
+  const loadPeaks = useCallback((eng, token) => {
+    eng
+      .peaks()
+      .then((p) => {
+        if (p && token === loadToken.current) {
+          sim.current.peaks = p;
+          sim.current.peaksAt = performance.now();
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const loadFile = useCallback(
     async (file) => {
@@ -202,6 +222,7 @@ const Turntable = ({ tracks, soundcloudProfile }) => {
         sim.current.engine = eng;
         setStatus('ready');
         setClock({ pos: 0, dur: eng.duration });
+        loadPeaks(eng, token);
       } catch {
         if (token !== loadToken.current) return undefined;
         setStatus('error');
@@ -209,15 +230,14 @@ const Turntable = ({ tracks, soundcloudProfile }) => {
       }
       return undefined;
     },
-    [unload, onEnded]
+    [unload, onEnded, loadPeaks]
   );
 
   const loadSoundcloud = useCallback(
     (track) => {
       loadToken.current += 1;
       unload();
-      // Colour is fixed at load: changing the embed URL later would reload the player
-      setRecord({ kind: 'soundcloud', title: track.title, url: track.url, color: hex });
+      setRecord({ kind: 'soundcloud', title: track.title, url: track.url });
       sim.current.title = track.title;
       setStatus('loading');
       setMessage('');
@@ -229,7 +249,7 @@ const Turntable = ({ tracks, soundcloudProfile }) => {
         });
       // The engine attaches once the iframe below has loaded (see onScLoad)
     },
-    [unload, hex]
+    [unload]
   );
 
   const onScLoad = useCallback(async () => {
@@ -249,13 +269,14 @@ const Turntable = ({ tracks, soundcloudProfile }) => {
       sim.current.engine = eng;
       setStatus('ready');
       setClock({ pos: 0, dur: eng.duration });
+      loadPeaks(eng, token);
     } catch {
       if (token !== loadToken.current) return undefined;
       setStatus('error');
       setMessage("SoundCloud didn't load. Check your connection, or drop your own file instead.");
     }
     return undefined;
-  }, [onEnded, setMotorOn, dropNeedle]);
+  }, [onEnded, setMotorOn, dropNeedle, loadPeaks]);
 
   useEffect(() => () => sim.current.engine?.destroy(), []);
 
@@ -358,6 +379,44 @@ const Turntable = ({ tracks, soundcloudProfile }) => {
     e.preventDefault();
   };
 
+  // ----- waveform strip: click or drag to move the arm there -----
+  const stripAt = (e) => {
+    const r = stripRef.current.getBoundingClientRect();
+    return clamp((e.clientX - r.left) / r.width, 0, 1);
+  };
+  const onStripDown = (e) => {
+    const s = sim.current;
+    if (!s.engine || e.button > 0) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    e.preventDefault();
+    if (s.arm.mode === 'down') s.engine.setNeedle(false);
+    setArmDown(false);
+    s.arm.mode = 'held';
+    s.arm.vel = 0;
+    s.stripSeek = stripAt(e);
+    s.arm.beta = angleForRadius(radiusForProgress(s.stripSeek));
+  };
+  const onStripMove = (e) => {
+    const s = sim.current;
+    const p = stripAt(e);
+    s.stripHover = s.engine && e.pointerType === 'mouse' ? p : null;
+    if (s.stripSeek == null) return;
+    s.stripSeek = p;
+    s.arm.beta = angleForRadius(radiusForProgress(p));
+  };
+  const onStripUp = () => {
+    const s = sim.current;
+    if (s.stripSeek == null) return;
+    const p = Math.min(s.stripSeek, 0.995);
+    s.stripSeek = null;
+    // Like a seek bar, it plays from there: start the motor if it was off
+    if (!s.motor) setMotorOn(true);
+    dropNeedle(p);
+  };
+  const onStripLeave = () => {
+    sim.current.stripHover = null;
+  };
+
   // ----- file drop -----
   const dropHandlers = {
     onDragOver: (e) => {
@@ -390,8 +449,35 @@ const Turntable = ({ tracks, soundcloudProfile }) => {
       cv.height = Math.round(r.height * dpr);
       ctx.setTransform((r.width / W) * dpr, 0, 0, (r.height / H) * dpr, 0, 0);
     };
-    const ro = new ResizeObserver(fit);
+    const strip = stripRef.current;
+    const sctx = strip.getContext('2d');
+    let stripW = 0;
+    let stripH = 0;
+    const fitStrip = () => {
+      const r = strip.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      stripW = r.width;
+      stripH = r.height;
+      strip.width = Math.round(r.width * dpr);
+      strip.height = Math.round(r.height * dpr);
+      sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    // Playhead: wherever the needle is, or would land if lowered now (follows the arm)
+    const stripProgress = (s, eng) => {
+      if (!eng) return null;
+      if (s.stripSeek != null) return s.stripSeek;
+      if (s.arm.mode === 'down') return clamp(eng.position() / eng.duration, 0, 1);
+      const r = radiusAt(s.arm.beta);
+      if (r > GROOVE_OUT + 1) return null;
+      return (GROOVE_OUT - clamp(r, GROOVE_IN, GROOVE_OUT)) / (GROOVE_OUT - GROOVE_IN);
+    };
+
+    const ro = new ResizeObserver(() => {
+      fit();
+      fitStrip();
+    });
     ro.observe(cv);
+    ro.observe(strip);
     const io = new IntersectionObserver(([en]) => {
       sim.current.visible = en.isIntersecting;
     });
@@ -444,7 +530,20 @@ const Turntable = ({ tracks, soundcloudProfile }) => {
         }
       }
 
-      if (s.visible) draw(ctx, s, rate);
+      if (s.visible) {
+        draw(ctx, s, rate);
+        if (stripW > 0) {
+          const t = s.peaks ? clamp((now - s.peaksAt) / 450, 0, 1) : 0;
+          drawWaveform(sctx, stripW, stripH, {
+            peaks: s.peaks,
+            grow: 1 - (1 - t) ** 3,
+            progress: stripProgress(s, eng),
+            hover: s.stripSeek == null ? s.stripHover : null,
+            duration: eng?.duration,
+            accent: s.accent,
+          });
+        }
+      }
       raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
@@ -522,6 +621,18 @@ const Turntable = ({ tracks, soundcloudProfile }) => {
           )}
         </div>
 
+        {/* Waveform overview. Pointer-only: the deck itself is the keyboard control for seeking */}
+        <canvas
+          ref={stripRef}
+          aria-hidden="true"
+          onPointerDown={onStripDown}
+          onPointerMove={onStripMove}
+          onPointerUp={onStripUp}
+          onPointerCancel={onStripUp}
+          onPointerLeave={onStripLeave}
+          className={`mt-4 block h-14 w-full touch-none select-none ${status === 'ready' ? 'cursor-pointer' : ''}`}
+        />
+
         <div className="mt-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           <p className="min-w-0 truncate font-semibold text-light">
             {record ? record.title : 'No record on the deck'}
@@ -544,7 +655,7 @@ const Turntable = ({ tracks, soundcloudProfile }) => {
             scrolling="no"
             frameBorder="no"
             allow="autoplay"
-            src={soundcloudEmbedUrl(record.url, record.color)}
+            src={soundcloudEmbedUrl(record.url)}
           />
         )}
       </div>
